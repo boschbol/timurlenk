@@ -645,7 +645,9 @@ function renderFilterOptions(){
 let view = [];
 const state = { q:"", durum:"", teknik:"", mecra:"", sirala:"no", kol:false, fotosuz:false, eksik:false };
 function alan(r){ return (r.olcu_a && r.olcu_b) ? r.olcu_a * r.olcu_b : null; }
-function apply(){
+function apply(korunsun){
+  const eskiSayi = korunsun ? rendered : 0;
+  const eskiKaydirma = korunsun ? (window.pageYOffset || document.documentElement.scrollTop || 0) : 0;
   const q = norm(state.q);
   view = ALL.filter(function(r){
     if(q && (admin ? r._qAdm : r._qPub).indexOf(q) < 0) return false;
@@ -659,14 +661,27 @@ function apply(){
     return true;
   });
   const s = state.sirala;
-  if(s === "no") view.sort(function(a, b){ return a.no - b.no; });
-  else if(s === "no-d") view.sort(function(a, b){ return b.no - a.no; });
-  else if(s === "sanatci") view.sort(function(a, b){ return (a.sanatci || "zzz").localeCompare(b.sanatci || "zzz", "tr"); });
-  else if(s === "buyuk") view.sort(function(a, b){ return (alan(b) || 0) - (alan(a) || 0); });
-  else if(s === "kucuk") view.sort(function(a, b){ return (alan(a) || 1e9) - (alan(b) || 1e9); });
-  else if(s === "yeni") view.sort(function(a, b){ return String(b.guncelleme || b.eklenme || "").localeCompare(String(a.guncelleme || a.eklenme || "")) || b.no - a.no; });
+  // Koleksiyon eserleri secilen siralama ne olursa olsun her zaman en basta durur.
+  const kolOnce = function(a, b){
+    return (b.koleksiyon === "Evet" ? 1 : 0) - (a.koleksiyon === "Evet" ? 1 : 0);
+  };
+  let kars;
+  if(s === "no-d") kars = function(a, b){ return b.no - a.no; };
+  else if(s === "sanatci") kars = function(a, b){ return (a.sanatci || "zzz").localeCompare(b.sanatci || "zzz", "tr"); };
+  else if(s === "buyuk") kars = function(a, b){ return (alan(b) || 0) - (alan(a) || 0); };
+  else if(s === "kucuk") kars = function(a, b){ return (alan(a) || 1e9) - (alan(b) || 1e9); };
+  else if(s === "yeni") kars = function(a, b){ return String(b.guncelleme || b.eklenme || "").localeCompare(String(a.guncelleme || a.eklenme || "")) || b.no - a.no; };
+  else kars = function(a, b){ return a.no - b.no; };
+  view.sort(function(a, b){ return kolOnce(a, b) || kars(a, b); });
   $("countline").innerHTML = "<b>" + view.length.toLocaleString("tr") + "</b> eser gösteriliyor";
   rendered = 0; $("grid").innerHTML = ""; renderMore();
+  if(korunsun){
+    // Duzenlemeden once nereye kadar acilmissa oraya kadar geri ac, sonra ayni noktaya don
+    const hedef = Math.min(eskiSayi, view.length);
+    while(rendered < hedef) renderMore();
+    window.scrollTo(0, eskiKaydirma);
+    requestAnimationFrame(function(){ window.scrollTo(0, eskiKaydirma); });
+  }
 }
 
 /* ================= izgara ================= */
@@ -982,7 +997,7 @@ $("editform").addEventListener("submit", function(e){
          .catch(function(){ toast("Fotoğrafın aslı saklanamadı (yer yok) — küçüğü kaydedildi."); });
   });
   p.then(function(){
-    rerender();
+    rerender(true);
     $("editmodal").close();
     if($("modal").open){ const g = ALL.filter(function(x){ return x.no === no; })[0]; if(g) openModal(g); }
     toast(yeni ? "№ " + no + " eklendi ✓" : "№ " + no + " güncellendi ✓");
@@ -997,7 +1012,7 @@ $("e-geri").addEventListener("click", function(){
     delete OV[duzenlenen.no];
     lsSet(LS_OV, OV);
   }
-  rerender(); $("editmodal").close(); $("modal").close();
+  rerender(true); $("editmodal").close(); $("modal").close();
   toast("№ " + duzenlenen.no + " eski haline döndü");
 });
 
@@ -1103,7 +1118,7 @@ $("btn-panel").addEventListener("click", function(){
   if(admin){
     admin = false;
     try{ localStorage.removeItem(LS_ADM); }catch(e){}
-    panelUygula(); rerender(); toast("Panel kapatıldı — aile görünümü");
+    panelUygula(); rerender(true); toast("Panel kapatıldı — aile görünümü");
   } else { $("ad-msg").textContent = ""; $("ad-in").value = ""; $("adminmodal").showModal(); setTimeout(function(){ $("ad-in").focus(); }, 60); }
 });
 $("ad-close").addEventListener("click", function(){ $("adminmodal").close(); });
@@ -1112,7 +1127,7 @@ $("adminform").addEventListener("submit", function(e){
   if($("ad-in").value.trim() === ADMIN_PIN){
     admin = true;
     try{ localStorage.setItem(LS_ADM, "1"); }catch(e){}
-    $("adminmodal").close(); panelUygula(); rerender();
+    $("adminmodal").close(); panelUygula(); rerender(true);
     toast("Panel açıldı — artık düzenleyebilirsin");
   } else { $("ad-msg").textContent = "Şifre yanlış."; $("ad-in").select(); }
 });
@@ -1128,7 +1143,7 @@ $("f-kol").addEventListener("click", function(e){ state.kol = !state.kol; e.curr
 $("f-fotosuz").addEventListener("click", function(e){ state.fotosuz = !state.fotosuz; e.currentTarget.setAttribute("aria-pressed", state.fotosuz); apply(); });
 $("f-eksik").addEventListener("click", function(e){ state.eksik = !state.eksik; e.currentTarget.setAttribute("aria-pressed", state.eksik); apply(); });
 
-function rerender(){ rebuildAll(); renderStats(); renderFilterOptions(); panelUygula(); apply(); }
+function rerender(korunsun){ rebuildAll(); renderStats(); renderFilterOptions(); panelUygula(); apply(korunsun); }
 
 /* ================= acilis ================= */
 window.__appReady = true;
