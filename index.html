@@ -280,6 +280,11 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
 #adminmodal .form-wrap{display:flex;flex-direction:column;gap:12px}
 #adminmodal input{background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:11px 13px;text-align:center;font-size:16px;outline:none}
 
+.btn-sanatci-dugme{border:1.5px solid var(--gold);background:var(--gold-soft);color:var(--gold);
+  border-radius:10px;padding:9px 15px;font-size:13.5px;font-weight:600;white-space:nowrap}
+.btn-sanatci-dugme:hover{background:var(--gold);color:#fff}
+.btn-sanatci-dugme:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+
 /* ---- sanatci dizini ---- */
 #sanatcimodal{width:min(560px,calc(100vw - 24px))}
 .sn-ara{width:100%;background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:9px 12px;outline:none;margin-top:10px}
@@ -385,10 +390,10 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
       <option value="kucuk">En küçük ölçü</option>
       <option value="yeni">Son değişen</option>
     </select>
-    <button class="tgl" id="f-kol" aria-pressed="false">Koleksiyon</button>
+    <button class="tgl" id="f-kol" aria-pressed="true">Koleksiyon</button>
     <button class="tgl" id="f-fotosuz" aria-pressed="false">Fotoğrafsız</button>
     <button class="tgl hide" id="f-eksik" aria-pressed="false">Sanatçısı belirsiz</button>
-    <button class="btn-line hide" id="btn-sanatci">Sanatçılar</button>
+    <button class="btn-sanatci-dugme hide" id="btn-sanatci">🎨 Sanatçılar</button>
     <button class="btn-gold hide" id="btn-add">＋ Yeni eser</button>
     <button class="btn-line hide" id="btn-disa">⭳ Dışa aktar</button>
   </div>
@@ -684,7 +689,8 @@ function renderFilterOptions(){
 
 /* ================= filtreleme ================= */
 let view = [];
-const state = { q:"", durum:"", teknik:"", mecra:"", sirala:"no", kol:false, fotosuz:false, eksik:false, sanatci:null };
+// Site acildiginda koleksiyon eserleri secili gelir; kullanici dugmeye basip tum envantere doner.
+const state = { q:"", durum:"", teknik:"", mecra:"", sirala:"no", kol:true, fotosuz:false, eksik:false, sanatci:null };
 function alan(r){ return (r.olcu_a && r.olcu_b) ? r.olcu_a * r.olcu_b : null; }
 function apply(korunsun){
   const eskiSayi = korunsun ? rendered : 0;
@@ -703,10 +709,6 @@ function apply(korunsun){
     return true;
   });
   const s = state.sirala;
-  // Koleksiyon eserleri secilen siralama ne olursa olsun her zaman en basta durur.
-  const kolOnce = function(a, b){
-    return (b.koleksiyon === "Evet" ? 1 : 0) - (a.koleksiyon === "Evet" ? 1 : 0);
-  };
   let kars;
   if(s === "no-d") kars = function(a, b){ return b.no - a.no; };
   else if(s === "sanatci") kars = function(a, b){ return (a.sanatci || "zzz").localeCompare(b.sanatci || "zzz", "tr"); };
@@ -714,7 +716,7 @@ function apply(korunsun){
   else if(s === "kucuk") kars = function(a, b){ return (alan(a) || 1e9) - (alan(b) || 1e9); };
   else if(s === "yeni") kars = function(a, b){ return String(b.guncelleme || b.eklenme || "").localeCompare(String(a.guncelleme || a.eklenme || "")) || b.no - a.no; };
   else kars = function(a, b){ return a.no - b.no; };
-  view.sort(function(a, b){ return kolOnce(a, b) || kars(a, b); });
+  view.sort(kars);
   let sayacHtml = "<b>" + view.length.toLocaleString("tr") + "</b> eser gösteriliyor";
   if(state.sanatci !== null){
     sayacHtml += '<span class="aktif-filtre">' + (esc(state.sanatci) || "Sanatçısı boş") +
