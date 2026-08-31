@@ -191,6 +191,8 @@ header.masthead{max-width:1280px;margin:0 auto;padding:30px 20px 8px;display:fle
 .card .no{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--gold);letter-spacing:.03em}
 .card .baslik{font-weight:600;font-size:13.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card .tech{font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .kart-tahmini{font-size:11.5px;font-style:italic;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.modal-tahmini{font-style:italic;color:var(--ink-2);font-size:14.5px;margin:-2px 0 4px}
 .badge{position:absolute;top:8px;left:8px;font-size:10.5px;font-weight:600;letter-spacing:.05em;border-radius:6px;padding:2px 7px}
 .badge.sold{background:var(--sold-soft);color:var(--sold)}
 .badge.unsure{background:var(--warn-soft);color:var(--warn)}
@@ -199,6 +201,7 @@ header.masthead{max-width:1280px;margin:0 auto;padding:30px 20px 8px;display:fle
 .badge + .badge{top:32px}
 .fotoadet{position:absolute;right:8px;bottom:8px;font-size:10.5px;font-weight:600;background:rgba(20,18,14,.62);color:#fff;border-radius:6px;padding:2px 7px;letter-spacing:.03em}
 
+.kol-ayrac{grid-column:1/-1;text-align:center;color:var(--ink-3);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;padding:14px 0 2px}
 .sentinel{height:1px}
 .load-note{text-align:center;color:var(--ink-3);font-size:13px;padding:8px 0 40px}
 
@@ -284,6 +287,19 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
   border-radius:10px;padding:9px 15px;font-size:13.5px;font-weight:600;white-space:nowrap}
 .btn-sanatci-dugme:hover{background:var(--gold);color:#fff}
 .btn-sanatci-dugme:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+
+/* ---- gecmis ---- */
+#gecmismodal{width:min(600px,calc(100vw - 24px))}
+.gecmis-liste{display:flex;flex-direction:column;gap:10px;margin-top:12px;max-height:56vh;max-height:56dvh;overflow-y:auto}
+.gm-kayit{background:var(--bg);border-radius:10px;padding:10px 12px}
+.gm-ust{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:13px}
+.gm-ust .kim{font-weight:600;color:var(--gold)}
+.gm-ust .ne{color:var(--ink)}
+.gm-ust .tarih{color:var(--ink-3);font-size:11.5px;margin-left:auto;white-space:nowrap}
+.gm-ust .bekliyor{font-size:10.5px;font-weight:600;background:var(--warn-soft);color:var(--warn);border-radius:5px;padding:1px 6px}
+.gm-fark{margin-top:6px;font-size:12.5px;color:var(--ink-2);display:flex;flex-direction:column;gap:2px}
+.gm-fark .eski{color:var(--sold);text-decoration:line-through;text-decoration-thickness:1px}
+.gm-fark .yeni{color:var(--ok)}
 
 /* ---- sanatci dizini ---- */
 #sanatcimodal{width:min(560px,calc(100vw - 24px))}
@@ -396,6 +412,7 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
     <button class="btn-sanatci-dugme" id="btn-sanatci">🎨 Sanatçılar</button>
     <button class="btn-gold hide" id="btn-add">＋ Yeni eser</button>
     <button class="btn-gold hide" id="btn-onay">☁ Onayla</button>
+    <button class="btn-line hide" id="btn-gecmis">🕘 Geçmiş</button>
     <button class="btn-line hide" id="btn-disa">⭳ Dışa aktar</button>
   </div>
 </div>
@@ -407,7 +424,7 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
 <div class="sentinel" id="sentinel"></div>
 <div class="load-note" id="loadnote"></div>
 
-<div class="footer">Timurlenk envanter kaydı · Aileye özel</div>
+<div class="footer">Timurlenk envanter kaydı · Aileye özel<br><span id="son-guncelleme"></span></div>
 
 <dialog id="modal">
   <div class="modal-wrap">
@@ -424,6 +441,7 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
         <button class="modal-close" id="m-close" type="button" aria-label="Kapat">✕</button>
       </div>
       <div class="modal-artist" id="m-artist"></div>
+      <div class="modal-tahmini" id="m-tahmini"></div>
       <div class="modal-sub" id="m-sub"></div>
       <div class="chips" id="m-chips"></div>
       <button class="btn-gold hide" id="m-edit" type="button" style="margin-bottom:14px">✎ Bu eseri düzenle</button>
@@ -473,6 +491,16 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
       <button type="button" class="sn-sirala" id="sn-abc" aria-pressed="false">A–Z</button>
     </div>
     <div class="sn-liste" id="sn-liste"></div>
+  </div>
+</dialog>
+
+<dialog id="gecmismodal">
+  <div class="form-wrap">
+    <div class="modal-top">
+      <h2 style="margin-bottom:0">Değişiklik geçmişi</h2>
+      <button type="button" class="modal-close" id="gm-close" aria-label="Kapat">✕</button>
+    </div>
+    <div class="gecmis-liste" id="gecmis-liste"></div>
   </div>
 </dialog>
 
@@ -528,11 +556,13 @@ const readJson = function(id){ try{ return JSON.parse($(id).textContent); }catch
 const BASE  = readJson("j-base") || [];
 const IMGS  = readJson("j-imgs") || {};          // gomulu kucuk gorseller (cevrimdisi kopya)
 const FOTO  = readJson("j-foto") || {};          // {no: [karusel_adedi, son_dosya_indeksi]}
-const ADMIN_PIN = "admin";
-const LS_OV = "tml_ov", LS_NEW = "tml_new", LS_ADM = "tml_adm";
+const KIMLIK = {"mertt":"Mert","dogann":"Do\u011fan","do\u011fann":"Do\u011fan","medinee":"Medine","melekk":"Melek","nurr":"Nur"};
+let benKim = "";
+const LS_OV = "tml_ov", LS_NEW = "tml_new", LS_ADM = "tml_adm", LS_LOG = "tml_log";
 
 /* ================= depolama ================= */
 let OV = {};          // {no: {alan: deger}}
+let LOG = [];         // onay bekleyen gecmis kayitlari
 let NEW = [];         // arayuzden eklenen eserler
 let admin = false;
 function lsGet(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
@@ -584,6 +614,7 @@ const FIELDS = [
   {g:"Durum", k:"durum",           l:"Durum",               t:"select", opts:["Mevcut","Satıldı","Satıldı (teyitsiz)","Rezerve","Hediye","Kayıp",""]},
   {g:"Durum", k:"kondisyon",       l:"Kondisyon",           t:"text", list:"dl-kondisyon"},
   {g:"Durum", k:"koleksiyon",      l:"Koleksiyon eseri",    t:"select", opts:["","Evet","Hayır"]},
+  {g:"Durum", k:"sahiplik",        l:"Sahiplik",            t:"select", opts:["","Bizim","Konsinye"]},
   {g:"Durum", k:"konum",           l:"Depo konumu",         t:"text", list:"dl-konum", ph:"2. kat / B sıra"},
   {g:"Durum", k:"satis_kanali",    l:"Satış kanalı",        t:"text", ph:"8. IG LIVE"},
   {g:"Durum", k:"alici",           l:"Alıcı",               t:"text"},
@@ -596,6 +627,14 @@ const FIELDS = [
   {g:"Köken", k:"not",             l:"Not / hatıra",        t:"textarea", wide:true}
 ];
 const PROV = ["temin","alim_tarihi","alim_yer","alim_bedel"];
+const ALAN_AD = {};
+for(let fi = 0; fi < FIELDS.length; fi++) ALAN_AD[FIELDS[fi].k] = FIELDS[fi].l;
+function logEkle(kayit){
+  kayit.t = new Date().toISOString();
+  kayit.kim = benKim || "?";
+  LOG.push(kayit);
+  lsSet(LS_LOG, LOG);
+}
 
 /* ================= veri katmani ================= */
 const norm = function(s){ return (s == null ? "" : String(s)).toLocaleLowerCase("tr"); };
@@ -616,12 +655,13 @@ function teknikAile(t){
 }
 function prep(r){
   r._aile = teknikAile(r.teknik);
-  r._qPub = norm([r.no, r.teknik, r.cins, r.aciklama, r.tarih, r.konum, r.not].join(" "));
+  r._qPub = norm([r.no, r.sanatci, r.tahmini_sanatci, r.teknik, r.cins, r.aciklama, r.tarih, r.konum].join(" "));
   r._qAdm = r._qPub + " " + norm([r.sanatci, r.tahmini_sanatci, r.alici, r.gecmis, r.temin, r.alim_yer].join(" "));
   return r;
 }
 let ALL = [];
 let SRV_OV = {}, SRV_NEW = [];      // herkese yayilmis (onaylanmis) degisiklikler
+let SRV_LOG = [], SRV_SON = null;
 function rebuildAll(){
   const out = [];
   for(let i = 0; i < BASE.length; i++){
@@ -690,18 +730,20 @@ function toast(msg){
 /* ================= istatistik + filtreler ================= */
 function renderStats(){
   const n = ALL.length;
-  let mevcut = 0, satilan = 0, fotolu = 0, belirsiz = 0;
+  let mevcut = 0, satilan = 0, fotolu = 0, belirsiz = 0, imzasiz = 0;
   for(let i = 0; i < ALL.length; i++){
     const r = ALL[i];
     if(r.durum === "Mevcut") mevcut++;
     if((r.durum || "").indexOf("Satıldı") === 0) satilan++;
     if(fotoAdet(r)) fotolu++;
     if(!r.sanatci) belirsiz++;
+    if(norm(r.sanatci).indexOf("imza okunam") === 0) imzasiz++;
   }
   let h = '<div class="stat"><b class="accent">' + n.toLocaleString("tr") + '</b><span>Kayıt</span></div>' +
           '<div class="stat"><b>' + mevcut.toLocaleString("tr") + '</b><span>Mevcut</span></div>' +
           '<div class="stat"><b>' + satilan.toLocaleString("tr") + '</b><span>Satılan</span></div>' +
-          '<div class="stat"><b>' + fotolu.toLocaleString("tr") + '</b><span>Fotoğraflı</span></div>';
+          '<div class="stat"><b>' + fotolu.toLocaleString("tr") + '</b><span>Fotoğraflı</span></div>' +
+          '<div class="stat"><b>' + imzasiz.toLocaleString("tr") + '</b><span>İmzası okunamayan</span></div>';
   if(admin) h += '<div class="stat"><b>' + belirsiz.toLocaleString("tr") + '</b><span>Sanatçısı boş</span></div>';
   $("statbar").innerHTML = h;
 }
@@ -770,6 +812,12 @@ function apply(korunsun){
     sayacHtml += '<span class="aktif-filtre">' + (esc(state.sanatci) || "Sanatçısı boş") +
                  ' <button type="button" id="sanatci-temizle" aria-label="Sanatçı filtresini kaldır">✕</button></span>';
   }
+  kolAyracIdx = -1;
+  if(state.kol){
+    for(let ai = 0; ai < view.length; ai++){
+      if(view[ai].koleksiyon !== "Evet"){ kolAyracIdx = ai > 0 ? ai : -1; break; }
+    }
+  }
   $("countline").innerHTML = sayacHtml;
   const tmz = $("sanatci-temizle");
   if(tmz) tmz.addEventListener("click", function(){ state.sanatci = null; apply(); });
@@ -784,7 +832,7 @@ function apply(korunsun){
 }
 
 /* ================= izgara ================= */
-let rendered = 0;
+let rendered = 0, kolAyracIdx = -1;
 const BATCH = 60;
 function cardBadges(r){
   let h = "";
@@ -795,14 +843,19 @@ function cardBadges(r){
   return h;
 }
 function kartBaslik(r){
-  if(admin) return esc(r.sanatci) || '<i style="color:var(--ink-3)">Sanatçı boş</i>';
-  return esc(r.aciklama) || esc(r.cins) || esc(r.teknik) || '<i style="color:var(--ink-3)">Kayıt</i>';
+  return esc(r.sanatci) || esc(r.aciklama) || esc(r.cins) || '<i style="color:var(--ink-3)">Sanatçı boş</i>';
 }
 function renderMore(){
   const b = $("boot"); if(b) b.remove();
   const frag = document.createDocumentFragment();
   const end = Math.min(rendered + BATCH, view.length);
   for(let i = rendered; i < end; i++){
+    if(i === kolAyracIdx){
+      const ayr = document.createElement("div");
+      ayr.className = "kol-ayrac";
+      ayr.textContent = "— Envanterin geri kalanı —";
+      frag.appendChild(ayr);
+    }
     const r = view[i];
     const b = document.createElement("button");
     b.className = "card"; b.type = "button";
@@ -812,6 +865,7 @@ function renderMore(){
       (adet > 1 ? '<span class="fotoadet">' + adet + ' foto</span>' : "") + "</div>" +
       '<div class="card-meta"><span class="no">№ ' + r.no + "</span>" +
       '<span class="baslik">' + kartBaslik(r) + "</span>" +
+      (r.tahmini_sanatci ? '<span class="kart-tahmini">' + esc(r.tahmini_sanatci) + " ?</span>" : "") +
       '<span class="tech">' + (esc(r.teknik) || "") + (r.olcu ? " · " + esc(r.olcu) : "") + "</span></div>";
     if(img){
       const im = b.querySelector("img");
@@ -878,8 +932,8 @@ function openModal(r){
   aktifKayit = r;
   karFotos = karUrls(r); karI = 0; karGoster();
   $("m-no").textContent = "ARŞİV № " + r.no;
-  $("m-artist").textContent = admin ? (r.sanatci || "Sanatçı kaydı yok")
-                                    : (r.aciklama || r.cins || r.teknik || "Eser " + r.no);
+  $("m-artist").textContent = r.sanatci || r.aciklama || r.cins || ("Eser " + r.no);
+  $("m-tahmini").textContent = r.tahmini_sanatci ? ("Tahmini: " + r.tahmini_sanatci) : "";
   $("m-sub").textContent = [r.teknik, r.olcu ? r.olcu + " cm" : "", r.tarih].filter(Boolean).join(" · ");
   let chips = "";
   if(r.durum === "Mevcut") chips += '<span class="chip ok">MEVCUT</span>';
@@ -890,24 +944,24 @@ function openModal(r){
   if(r.yuz_sayisi && r.yuz_sayisi !== "1") chips += '<span class="chip plain">' + esc(r.yuz_sayisi) + " YÜZ</span>";
   if(admin && r._duzenli) chips += '<span class="chip warn">DÜZENLENDİ</span>';
   if(admin && r._yeni) chips += '<span class="chip warn">YENİ EKLENDİ</span>';
+  if(admin && r.sahiplik === "Konsinye") chips += '<span class="chip warn">KONSİNYE</span>';
   $("m-chips").innerHTML = chips;
   $("m-edit").classList.toggle("hide", !admin);
   let h = "";
-  if(admin){
-    h += row("Sanatçı", esc(r.sanatci) || '<i style="color:var(--ink-3)">boş</i>');
-    h += row("Tahmini sanatçı", esc(r.tahmini_sanatci));
-  }
   h += row("Cins", esc(r.cins)) + row("Konu / açıklama", esc(r.aciklama)) +
        row("Çerçeve ölçüsü", esc(r.cerceve_olcu)) + row("Derinlik", esc(r.derinlik)) +
        row("Ağırlık", r.kg ? esc(r.kg) + " kg" : "") + row("Kondisyon", esc(r.kondisyon)) +
        row("Yön", esc(r.oryantasyon)) + row("Klasik / Modern", esc(r.klasik_modern)) +
        row("Depo konumu", esc(r.konum));
-  let prov = row("Kimden alındı", esc(r.temin)) + row("Ne zaman alındı", esc(r.alim_tarihi)) +
-             row("Nereden alındı", esc(r.alim_yer)) + row("Alış bedeli", esc(r.alim_bedel)) +
-             row("Müzayede / sergi", esc(r.gecmis));
-  if(admin) prov += row("Satış kanalı", esc(r.satis_kanali)) + row("Alıcı", esc(r.alici)) + row("Satış bedeli", esc(r.fiyat_metin));
-  if(prov) h += '<div class="dl-basi">Köken ve geçmiş</div>' + prov;
-  if(r.not) h += '<div class="dl-basi">Not</div>' + row("", esc(r.not));
+  if(admin){
+    let prov = row("Sahiplik", esc(r.sahiplik)) +
+               row("Kimden alındı", esc(r.temin)) + row("Ne zaman alındı", esc(r.alim_tarihi)) +
+               row("Nereden alındı", esc(r.alim_yer)) + row("Alış bedeli", esc(r.alim_bedel)) +
+               row("Müzayede / sergi", esc(r.gecmis)) +
+               row("Satış kanalı", esc(r.satis_kanali)) + row("Alıcı", esc(r.alici)) + row("Satış bedeli", esc(r.fiyat_metin));
+    if(prov) h += '<div class="dl-basi">Köken ve geçmiş (yalnız panel)</div>' + prov;
+    if(r.not) h += '<div class="dl-basi">Not (yalnız panel)</div>' + row("", esc(r.not));
+  }
   $("m-dl").innerHTML = h;
   $("modal").showModal();
 }
@@ -1067,12 +1121,19 @@ $("editform").addEventListener("submit", function(e){
     veri.fotolar = fotoKucukler;
     NEW.push(veri);
     lsSet(LS_NEW, NEW);
+    logEkle({tur:"yeni", no: no, ozet: (veri.sanatci || veri.aciklama || veri.teknik || ""), foto: fotoKucukler.length});
   } else {
     const ov = {};
+    const fark = {};
     for(let i = 0; i < FIELDS.length; i++){
       const k = FIELDS[i].k;
-      if(String(veri[k] || "") !== String(duzenlenen[k] || "")) ov[k] = veri[k];
+      if(String(veri[k] || "") !== String(duzenlenen[k] || "")){
+        ov[k] = veri[k];
+        fark[k] = [duzenlenen[k] || "", veri[k] || ""];
+      }
     }
+    if(Object.keys(fark).length || fotoKucukler.length)
+      logEkle({tur:"duzenleme", no: no, fark: fark, foto: fotoKucukler.length});
     ov.olcu_a = veri.olcu_a; ov.olcu_b = veri.olcu_b; ov.guncelleme = veri.guncelleme;
     if(duzenlenen._yeni){
       for(let i = 0; i < NEW.length; i++) if(NEW[i]._id === duzenlenen._id){
@@ -1111,6 +1172,7 @@ $("e-geri").addEventListener("click", function(){
     delete OV[duzenlenen.no];
     lsSet(LS_OV, OV);
   }
+  logEkle({tur:"geri", no: duzenlenen.no});
   rerender(true); $("editmodal").close(); $("modal").close();
   toast("№ " + duzenlenen.no + " eski haline döndü");
 });
@@ -1275,6 +1337,7 @@ function sanatciYenidenAdlandir(eskiAd, yeniAd){
     n++;
   }
   lsSet(LS_OV, OV); lsSet(LS_NEW, NEW);
+  logEkle({tur:"sanatci", eski: eskiAd, yeni: yeniAd, adet: n});
   return n;
 }
 $("btn-sanatci").addEventListener("click", function(){
@@ -1364,7 +1427,19 @@ async function sunucuDegisiklikleriniYukle(){
     SRV_NEW = (v.yeni_eserler || []).map(function(n){ return Object.assign({}, n); });
     const sf = v.fotolar || {};
     for(const no in sf) FOTO[no] = sf[no];
+    SRV_LOG = v.gecmis_log || [];
+    SRV_SON = v.son || null;
+    sonGuncellemeYaz();
   }catch(e){ /* dosya henuz yok ya da cevrimdisi kopya */ }
+}
+function sonGuncellemeYaz(){
+  const el = $("son-guncelleme");
+  if(!el) return;
+  if(SRV_SON && SRV_SON.t){
+    let tarih = SRV_SON.t;
+    try{ tarih = new Date(SRV_SON.t).toLocaleString("tr-TR", {dateStyle:"long", timeStyle:"short"}); }catch(e){}
+    el.textContent = "Son güncelleme: " + tarih + (SRV_SON.kim ? " · " + SRV_SON.kim : "");
+  } else el.textContent = "";
 }
 let onayCalisiyor = false;
 async function onaylaVeYayinla(){
@@ -1382,6 +1457,7 @@ async function onaylaVeYayinla(){
       veri.degisiklikler = veri.degisiklikler || {};
       veri.yeni_eserler = veri.yeni_eserler || [];
       veri.fotolar = veri.fotolar || {};
+      veri.gecmis_log = veri.gecmis_log || [];
       let fotoSayac = 0;
       for(const no in OV){
         const ov = Object.assign({}, OV[no]);
@@ -1428,10 +1504,12 @@ async function onaylaVeYayinla(){
         if(!vardi) veri.yeni_eserler.push(temiz);
       }
       btn.textContent = "☁ Kaydediliyor…";
+      veri.gecmis_log = veri.gecmis_log.concat(LOG);
+      veri.son = {t: new Date().toISOString(), kim: benKim || "?"};
       try{
         await ghDosyaYaz("data/degisiklikler.json",
           b64utf8(JSON.stringify(veri)),
-          "Envanter: " + bekleyen + " degisiklik onaylandi", u.sha);
+          "Envanter (" + (benKim || "?") + "): " + bekleyen + " degisiklik", u.sha);
       }catch(e){
         if(deneme === 0) continue;
         throw e;
@@ -1439,8 +1517,10 @@ async function onaylaVeYayinla(){
       SRV_OV = veri.degisiklikler;
       SRV_NEW = veri.yeni_eserler.map(function(n){ return Object.assign({}, n); });
       for(const no2 in veri.fotolar) FOTO[no2] = veri.fotolar[no2];
-      OV = {}; NEW = [];
-      lsSet(LS_OV, OV); lsSet(LS_NEW, NEW);
+      OV = {}; NEW = []; LOG = [];
+      lsSet(LS_OV, OV); lsSet(LS_NEW, NEW); lsSet(LS_LOG, LOG);
+      SRV_LOG = veri.gecmis_log; SRV_SON = veri.son;
+      sonGuncellemeYaz();
       rerender(true);
       toast("Yayınlandı ✓ — diğer cihazlarda birkaç dakika içinde görünür");
       break;
@@ -1459,6 +1539,38 @@ async function onaylaVeYayinla(){
   panelUygula();
 }
 $("btn-onay").addEventListener("click", onaylaVeYayinla);
+function gecmisGoster(){
+  const hepsi = [];
+  for(let i = 0; i < LOG.length; i++) hepsi.push(Object.assign({_bek: true}, LOG[i]));
+  for(let j = SRV_LOG.length - 1; j >= 0; j--) hepsi.push(SRV_LOG[j]);
+  const parca = hepsi.slice(0, 250).map(function(g){
+    let ne = "";
+    if(g.tur === "yeni") ne = "№ " + g.no + " eklendi" + (g.ozet ? " — " + esc(g.ozet) : "") + (g.foto ? " (" + g.foto + " foto)" : "");
+    else if(g.tur === "geri") ne = "№ " + g.no + " eski haline döndürüldü";
+    else if(g.tur === "sanatci") ne = '"' + esc(g.eski) + '" → "' + esc(g.yeni) + '" (' + g.adet + " eser)";
+    else ne = "№ " + g.no + " düzenlendi" + (g.foto ? " (+" + g.foto + " foto)" : "");
+    let tarih = "";
+    try{ tarih = new Date(g.t).toLocaleString("tr-TR", {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"}); }catch(e){}
+    let farkHtml = "";
+    if(g.fark){
+      const satirlar = [];
+      for(const k in g.fark){
+        satirlar.push("<div>" + esc(ALAN_AD[k] || k) + ': <span class="eski">' + (esc(String(g.fark[k][0])) || "—") +
+                      '</span> → <span class="yeni">' + (esc(String(g.fark[k][1])) || "—") + "</span></div>");
+      }
+      if(satirlar.length) farkHtml = '<div class="gm-fark">' + satirlar.join("") + "</div>";
+    }
+    return '<div class="gm-kayit"><div class="gm-ust"><span class="kim">' + esc(g.kim || "?") + "</span>" +
+           '<span class="ne">' + ne + "</span>" +
+           (g._bek ? '<span class="bekliyor">ONAY BEKLİYOR</span>' : "") +
+           '<span class="tarih">' + tarih + "</span></div>" + farkHtml + "</div>";
+  });
+  $("gecmis-liste").innerHTML = parca.join("") ||
+    '<div style="color:var(--ink-3);padding:16px;text-align:center">Henüz kayıtlı değişiklik yok</div>';
+  $("gecmismodal").showModal();
+}
+$("btn-gecmis").addEventListener("click", gecmisGoster);
+$("gm-close").addEventListener("click", function(){ $("gecmismodal").close(); });
 $("tk-close").addEventListener("click", function(){ $("tokenmodal").close(); });
 $("tk-sil").addEventListener("click", function(){
   try{ localStorage.removeItem(LS_TOK); }catch(e){}
@@ -1477,9 +1589,12 @@ $("tokenform").addEventListener("submit", function(e){
 function panelUygula(){
   $("btn-panel").textContent = admin ? "Panel açık ✓" : "Panel";
   $("btn-panel").classList.toggle("on", admin);
-  $("rol-etiket").textContent = admin ? "Düzenleme yetkisi açık" : "Aile görünümü";
+  $("rol-etiket").textContent = admin ? ("Panel: " + benKim) : "Aile görünümü";
   $("btn-add").classList.toggle("hide", !admin);
   $("btn-disa").classList.toggle("hide", !admin);
+  $("btn-gecmis").classList.toggle("hide", !admin);
+  $("f-mecra").classList.toggle("hide", !admin);
+  if(!admin && state.mecra){ state.mecra = ""; $("f-mecra").value = ""; }
   $("f-eksik").classList.toggle("hide", !admin);
   $("q").placeholder = admin ? "Ara: sanatçı, no, teknik, konu, kimden alındı…" : "Ara: no, teknik, konu…";
   const sanatciOpt = $("f-sirala").querySelector('option[value="sanatci"]');
@@ -1501,11 +1616,12 @@ $("btn-panel").addEventListener("click", function(){
 $("ad-close").addEventListener("click", function(){ $("adminmodal").close(); });
 $("adminform").addEventListener("submit", function(e){
   e.preventDefault();
-  if($("ad-in").value.trim() === ADMIN_PIN){
-    admin = true;
-    try{ localStorage.setItem(LS_ADM, "1"); }catch(e){}
+  const kim = KIMLIK[$("ad-in").value.trim().toLocaleLowerCase("tr")];
+  if(kim){
+    admin = true; benKim = kim;
+    try{ localStorage.setItem(LS_ADM, kim); }catch(e){}
     $("adminmodal").close(); panelUygula(); rerender(true);
-    toast("Panel açıldı — artık düzenleyebilirsin");
+    toast("Hoş geldin " + kim + " — panel açık");
   } else { $("ad-msg").textContent = "Şifre yanlış."; $("ad-in").select(); }
 });
 
@@ -1526,8 +1642,15 @@ function rerender(korunsun){ rebuildAll(); renderStats(); renderFilterOptions();
 window.__appReady = true;
 if(window.__gateOk && typeof window.__gateAc === "function") window.__gateAc();
 OV = lsGet(LS_OV, {}) || {};
+LOG = lsGet(LS_LOG, []) || [];
 NEW = lsGet(LS_NEW, []) || [];
-try{ admin = localStorage.getItem(LS_ADM) === "1"; }catch(e){}
+try{
+  const kayitliKim = localStorage.getItem(LS_ADM) || "";
+  if(KIMLIK[kayitliKim.toLocaleLowerCase("tr")] || Object.values(KIMLIK).indexOf(kayitliKim) >= 0){
+    admin = true;
+    benKim = KIMLIK[kayitliKim.toLocaleLowerCase("tr")] || kayitliKim;
+  }
+}catch(e){}
 rerender();
 // Onaylanmis (herkese yayilmis) degisiklikleri arka planda yukle ve yerinde tazele
 sunucuDegisiklikleriniYukle().then(function(){ rerender(true); });
