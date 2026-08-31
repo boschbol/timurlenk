@@ -279,6 +279,30 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
 #adminmodal{width:min(360px,calc(100vw - 24px))}
 #adminmodal .form-wrap{display:flex;flex-direction:column;gap:12px}
 #adminmodal input{background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:11px 13px;text-align:center;font-size:16px;outline:none}
+
+/* ---- sanatci dizini ---- */
+#sanatcimodal{width:min(560px,calc(100vw - 24px))}
+.sn-ara{width:100%;background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:9px 12px;outline:none;margin-top:10px}
+.sn-ara:focus{border-color:var(--gold)}
+.sn-ust{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.sn-ust .bilgi{font-size:12.5px;color:var(--ink-2);margin-right:auto}
+.sn-sirala{border:1px solid var(--line-2);background:var(--card);border-radius:9px;padding:6px 10px;font-size:12.5px;color:var(--ink-2)}
+.sn-sirala[aria-pressed="true"]{border-color:var(--gold);color:var(--ink);background:var(--gold-soft)}
+.sn-liste{display:flex;flex-direction:column;gap:2px;margin-top:10px;max-height:50vh;max-height:50dvh;overflow-y:auto}
+.sn-satir{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;width:100%;text-align:left}
+.sn-satir:hover{background:var(--bg)}
+.sn-satir .ad{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.sn-satir .ad.bos{color:var(--ink-3);font-style:italic}
+.sn-satir .adet{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sn-satir .duzen{border:1px solid var(--line-2);border-radius:7px;padding:3px 9px;font-size:12px;color:var(--ink-2);flex:none}
+.sn-satir .duzen:hover{border-color:var(--gold);color:var(--ink)}
+.sn-duzenle{display:flex;gap:8px;align-items:center;padding:8px 10px;background:var(--bg);border-radius:9px;flex-wrap:wrap}
+.sn-duzenle input{flex:1 1 180px;background:var(--card);border:1px solid var(--gold);border-radius:8px;padding:7px 10px;outline:none}
+.sn-duzenle .uyari{flex-basis:100%;font-size:12px;color:var(--ink-2)}
+.aktif-filtre{display:inline-flex;align-items:center;gap:7px;background:var(--gold-soft);color:var(--gold);
+  border-radius:99px;padding:3px 6px 3px 12px;font-size:12.5px;font-weight:600;margin-left:8px}
+.aktif-filtre button{width:19px;height:19px;border-radius:50%;background:var(--gold);color:#fff;font-size:11px;line-height:19px;text-align:center;flex:none}
+
 @media (prefers-reduced-motion: reduce){.card{transition:none}}
 </style>
 </head>
@@ -364,6 +388,7 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
     <button class="tgl" id="f-kol" aria-pressed="false">Koleksiyon</button>
     <button class="tgl" id="f-fotosuz" aria-pressed="false">Fotoğrafsız</button>
     <button class="tgl hide" id="f-eksik" aria-pressed="false">Sanatçısı belirsiz</button>
+    <button class="btn-line hide" id="btn-sanatci">Sanatçılar</button>
     <button class="btn-gold hide" id="btn-add">＋ Yeni eser</button>
     <button class="btn-line hide" id="btn-disa">⭳ Dışa aktar</button>
   </div>
@@ -427,6 +452,22 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
       <button type="button" class="btn-sil hide" id="e-geri">Değişiklikleri geri al</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="sanatcimodal">
+  <div class="form-wrap">
+    <div class="modal-top">
+      <h2 style="margin-bottom:0">Sanatçılar</h2>
+      <button type="button" class="modal-close" id="sn-close" aria-label="Kapat">✕</button>
+    </div>
+    <input id="sn-ara" class="sn-ara" type="search" placeholder="Sanatçı ara…" autocomplete="off">
+    <div class="sn-ust">
+      <span class="bilgi" id="sn-bilgi"></span>
+      <button type="button" class="sn-sirala" id="sn-eser" aria-pressed="true">Esere göre</button>
+      <button type="button" class="sn-sirala" id="sn-abc" aria-pressed="false">A–Z</button>
+    </div>
+    <div class="sn-liste" id="sn-liste"></div>
+  </div>
 </dialog>
 
 <dialog id="adminmodal">
@@ -643,7 +684,7 @@ function renderFilterOptions(){
 
 /* ================= filtreleme ================= */
 let view = [];
-const state = { q:"", durum:"", teknik:"", mecra:"", sirala:"no", kol:false, fotosuz:false, eksik:false };
+const state = { q:"", durum:"", teknik:"", mecra:"", sirala:"no", kol:false, fotosuz:false, eksik:false, sanatci:null };
 function alan(r){ return (r.olcu_a && r.olcu_b) ? r.olcu_a * r.olcu_b : null; }
 function apply(korunsun){
   const eskiSayi = korunsun ? rendered : 0;
@@ -658,6 +699,7 @@ function apply(korunsun){
     if(state.kol && r.koleksiyon !== "Evet") return false;
     if(state.fotosuz && fotoAdet(r)) return false;
     if(state.eksik && r.sanatci) return false;
+    if(state.sanatci !== null && (r.sanatci || "") !== state.sanatci) return false;
     return true;
   });
   const s = state.sirala;
@@ -673,7 +715,14 @@ function apply(korunsun){
   else if(s === "yeni") kars = function(a, b){ return String(b.guncelleme || b.eklenme || "").localeCompare(String(a.guncelleme || a.eklenme || "")) || b.no - a.no; };
   else kars = function(a, b){ return a.no - b.no; };
   view.sort(function(a, b){ return kolOnce(a, b) || kars(a, b); });
-  $("countline").innerHTML = "<b>" + view.length.toLocaleString("tr") + "</b> eser gösteriliyor";
+  let sayacHtml = "<b>" + view.length.toLocaleString("tr") + "</b> eser gösteriliyor";
+  if(state.sanatci !== null){
+    sayacHtml += '<span class="aktif-filtre">' + (esc(state.sanatci) || "Sanatçısı boş") +
+                 ' <button type="button" id="sanatci-temizle" aria-label="Sanatçı filtresini kaldır">✕</button></span>';
+  }
+  $("countline").innerHTML = sayacHtml;
+  const tmz = $("sanatci-temizle");
+  if(tmz) tmz.addEventListener("click", function(){ state.sanatci = null; apply(); });
   rendered = 0; $("grid").innerHTML = ""; renderMore();
   if(korunsun){
     // Duzenlemeden once nereye kadar acilmissa oraya kadar geri ac, sonra ayni noktaya don
@@ -1099,12 +1148,107 @@ $("btn-disa").addEventListener("click", function(){
   }).catch(function(){ toast("Değişiklik dosyası indi; fotoğraflar paketlenemedi."); });
 });
 
+/* ================= sanatci dizini ================= */
+let snSirala = "eser";
+function sanatciSay(){
+  const m = {};
+  for(let i = 0; i < ALL.length; i++){
+    const ad = ALL[i].sanatci || "";
+    m[ad] = (m[ad] || 0) + 1;
+  }
+  return m;
+}
+function sanatciCiz(){
+  const m = sanatciSay();
+  const ara = norm($("sn-ara").value);
+  let adlar = Object.keys(m).filter(function(ad){ return !ara || norm(ad).indexOf(ara) >= 0; });
+  if(snSirala === "abc") adlar.sort(function(a, b){ return (a || "￿").localeCompare(b || "￿", "tr"); });
+  else adlar.sort(function(a, b){ return m[b] - m[a] || (a || "￿").localeCompare(b || "￿", "tr"); });
+  const toplamEser = adlar.reduce(function(t, a){ return t + m[a]; }, 0);
+  const adet = adlar.filter(function(a){ return a; }).length;
+  $("sn-bilgi").textContent = adet.toLocaleString("tr") + " sanatçı · " + toplamEser.toLocaleString("tr") + " eser";
+  $("sn-liste").innerHTML = adlar.map(function(ad){
+    return '<button type="button" class="sn-satir" data-ad="' + esc(ad) + '">' +
+             '<span class="ad' + (ad ? '' : ' bos') + '">' + (esc(ad) || "Sanatçısı boş") + '</span>' +
+             '<span class="adet">' + m[ad] + ' eser</span>' +
+             (ad ? '<span class="duzen" data-duzen="' + esc(ad) + '">✎ ad</span>' : '') +
+           '</button>';
+  }).join("") || '<div style="color:var(--ink-3);padding:14px;text-align:center">Eşleşen sanatçı yok</div>';
+}
+$("sn-liste").addEventListener("click", function(e){
+  const dz = e.target.closest("[data-duzen]");
+  if(dz){ e.stopPropagation(); sanatciDuzenle(dz.getAttribute("data-duzen")); return; }
+  const satir = e.target.closest(".sn-satir");
+  if(!satir) return;
+  state.sanatci = satir.getAttribute("data-ad");
+  state.eksik = false; $("f-eksik").setAttribute("aria-pressed", false);
+  $("sanatcimodal").close();
+  window.scrollTo(0, 0);
+  apply();
+});
+function sanatciDuzenle(eskiAd){
+  const satir = $("sn-liste").querySelector('.sn-satir[data-ad="' + eskiAd.replace(/"/g, '\\"') + '"]');
+  if(!satir) return;
+  const m = sanatciSay();
+  const kutu = document.createElement("div");
+  kutu.className = "sn-duzenle";
+  kutu.innerHTML = '<input type="text" value="' + esc(eskiAd) + '" aria-label="Sanatçı adı">' +
+                   '<button type="button" class="btn-gold" style="padding:7px 13px;font-size:13px">Kaydet</button>' +
+                   '<button type="button" class="btn-line" style="padding:7px 13px;font-size:13px">Vazgeç</button>' +
+                   '<span class="uyari">' + m[eskiAd] + ' eserin sanatçı adı değişecek. Var olan bir adı yazarsan iki kayıt birleşir.</span>';
+  satir.replaceWith(kutu);
+  const inp = kutu.querySelector("input");
+  inp.focus(); inp.select();
+  const kaydet = function(){
+    const yeniAd = inp.value.trim();
+    if(yeniAd === eskiAd){ sanatciCiz(); return; }
+    const n = sanatciYenidenAdlandir(eskiAd, yeniAd);
+    rerender(true);
+    sanatciCiz();
+    toast(n + " eserin sanatçısı güncellendi ✓");
+  };
+  kutu.querySelectorAll("button")[0].addEventListener("click", kaydet);
+  kutu.querySelectorAll("button")[1].addEventListener("click", sanatciCiz);
+  inp.addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); kaydet(); } else if(e.key === "Escape"){ sanatciCiz(); } });
+}
+function sanatciYenidenAdlandir(eskiAd, yeniAd){
+  const zaman = new Date().toISOString();
+  let n = 0;
+  for(let i = 0; i < ALL.length; i++){
+    const r = ALL[i];
+    if((r.sanatci || "") !== eskiAd) continue;
+    if(r._yeni){
+      for(let j = 0; j < NEW.length; j++) if(NEW[j]._id === r._id){ NEW[j].sanatci = yeniAd; NEW[j].guncelleme = zaman; }
+    } else {
+      OV[r.no] = Object.assign({}, OV[r.no] || {}, {sanatci: yeniAd, guncelleme: zaman});
+    }
+    n++;
+  }
+  lsSet(LS_OV, OV); lsSet(LS_NEW, NEW);
+  return n;
+}
+$("btn-sanatci").addEventListener("click", function(){
+  $("sn-ara").value = "";
+  sanatciCiz();
+  $("sanatcimodal").showModal();
+});
+$("sn-close").addEventListener("click", function(){ $("sanatcimodal").close(); });
+$("sn-ara").addEventListener("input", sanatciCiz);
+$("sn-eser").addEventListener("click", function(){
+  snSirala = "eser"; $("sn-eser").setAttribute("aria-pressed", true); $("sn-abc").setAttribute("aria-pressed", false); sanatciCiz();
+});
+$("sn-abc").addEventListener("click", function(){
+  snSirala = "abc"; $("sn-abc").setAttribute("aria-pressed", true); $("sn-eser").setAttribute("aria-pressed", false); sanatciCiz();
+});
+
 /* ================= panel ================= */
 function panelUygula(){
   $("btn-panel").textContent = admin ? "Panel açık ✓" : "Panel";
   $("btn-panel").classList.toggle("on", admin);
   $("rol-etiket").textContent = admin ? "Düzenleme yetkisi açık" : "Aile görünümü";
   $("btn-add").classList.toggle("hide", !admin);
+  $("btn-sanatci").classList.toggle("hide", !admin);
+  if(!admin && state.sanatci !== null) state.sanatci = null;
   $("btn-disa").classList.toggle("hide", !admin);
   $("f-eksik").classList.toggle("hide", !admin);
   $("q").placeholder = admin ? "Ara: sanatçı, no, teknik, konu, kimden alındı…" : "Ara: no, teknik, konu…";
