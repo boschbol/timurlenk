@@ -200,7 +200,12 @@ button.stat[data-act]:not([data-act=""]):hover{background:var(--card);box-shadow
 .badge.unsure{background:var(--warn-soft);color:var(--warn)}
 .badge.kol{background:var(--gold-soft);color:var(--gold)}
 .badge.pend{background:var(--warn-soft);color:var(--warn)}
+.badge.hazir{background:var(--ok-soft);color:var(--ok)}
 .badge + .badge{top:32px}
+.kol-yildiz{position:absolute;top:6px;right:6px;z-index:2;width:30px;height:30px;border-radius:50%;
+  background:rgba(20,18,14,.55);color:rgba(255,255,255,.55);font-size:17px;line-height:30px;text-align:center}
+.kol-yildiz.on{color:var(--gold);background:rgba(20,18,14,.75)}
+.kol-yildiz:hover{color:var(--gold)}
 .fotoadet{position:absolute;right:8px;bottom:8px;font-size:10.5px;font-weight:600;background:rgba(20,18,14,.62);color:#fff;border-radius:6px;padding:2px 7px;letter-spacing:.03em}
 
 .kol-ayrac{grid-column:1/-1;text-align:center;color:var(--ink-3);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;padding:14px 0 2px}
@@ -293,6 +298,17 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
   border-radius:10px;padding:9px 15px;font-size:13.5px;font-weight:600;white-space:nowrap}
 .btn-sanatci-dugme:hover{background:var(--gold);color:#fff}
 .btn-sanatci-dugme:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+
+/* ---- onay onizleme ---- */
+#onaymodal{width:min(600px,calc(100vw - 24px))}
+.onay-liste{display:flex;flex-direction:column;gap:8px;margin-top:12px;max-height:52vh;max-height:52dvh;overflow-y:auto}
+.on-satir{display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:10px;padding:10px 12px}
+.on-satir input[type=checkbox]{width:17px;height:17px;accent-color:var(--gold);flex:none}
+.on-govde{flex:1;min-width:0}
+.on-baslik{font-size:13.5px;font-weight:600}
+.on-detay{font-size:12px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.on-sil{flex:none;border:1px solid var(--line-2);border-radius:7px;width:30px;height:30px;color:var(--ink-2)}
+.on-sil:hover{border-color:var(--sold);color:var(--sold)}
 
 /* ---- gecmis ---- */
 #gecmismodal{width:min(600px,calc(100vw - 24px))}
@@ -501,6 +517,21 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
   </div>
 </dialog>
 
+<dialog id="onaymodal">
+  <div class="form-wrap">
+    <div class="modal-top">
+      <h2 style="margin-bottom:0">Yayınlanacaklar</h2>
+      <button type="button" class="modal-close" id="om-close" aria-label="Kapat">✕</button>
+    </div>
+    <p style="color:var(--ink-2);font-size:13px;margin-top:8px">İstemediğini işaretten çıkar ya da 🗑 ile tamamen sil, sonra yayınla.</p>
+    <div class="onay-liste" id="onay-liste"></div>
+    <div class="form-actions">
+      <button type="button" class="btn-gold" id="om-yayinla">Seçilenleri yayınla</button>
+      <button type="button" class="btn-ghost" id="om-vazgec">Kapat</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="gecmismodal">
   <div class="form-wrap">
     <div class="modal-top">
@@ -644,6 +675,14 @@ function logEkle(kayit){
 }
 
 /* ================= veri katmani ================= */
+function fotoTekil(liste){
+  const gorulen = {};
+  return (liste || []).filter(function(f){
+    const key = f && f.k;
+    if(!key || gorulen[key]) return false;
+    gorulen[key] = 1; return true;
+  });
+}
 const norm = function(s){ return (s == null ? "" : String(s)).toLocaleLowerCase("tr"); };
 function parseOlcu(t){
   const m = /^\s*(\d+(?:[.,]\d+)?)\s*[xX×]\s*(\d+(?:[.,]\d+)?)\s*$/.exec(t || "");
@@ -669,6 +708,18 @@ function prep(r){
 let ALL = [];
 let SRV_OV = {}, SRV_NEW = [];      // herkese yayilmis (onaylanmis) degisiklikler
 let SRV_LOG = [], SRV_SON = null;
+let CIHAZ_FOTO = {};   // {no:true} — bu cihazin deposunda asil fotografi olanlar
+function cihazFotolariniTara(){
+  idbKeys().then(function(keys){
+    const m = {};
+    (keys || []).forEach(function(k){
+      const mt = /^(\d+)(-\d+)?\.jpg$/.exec(String(k));
+      if(mt) m[mt[1]] = true;
+    });
+    CIHAZ_FOTO = m;
+    if(Object.keys(m).length) apply(true);
+  }).catch(function(){});
+}
 function rebuildAll(){
   const out = [];
   for(let i = 0; i < BASE.length; i++){
@@ -693,7 +744,7 @@ function rebuildAll(){
     if(bekTekil[key]){
       const eskiF = bekTekil[key].fotolar || [];
       bekTekil[key] = Object.assign({}, bekTekil[key], NEW[j]);
-      bekTekil[key].fotolar = eskiF.concat(NEW[j].fotolar || []);
+      bekTekil[key].fotolar = fotoTekil(eskiF.concat(NEW[j].fotolar || []));
     } else bekTekil[key] = Object.assign({}, NEW[j]);
   }
   for(const bk in bekTekil) out.push(prep(Object.assign({}, bekTekil[bk], {_yeni:true, _bekleyen:true})));
@@ -887,6 +938,7 @@ function apply(korunsun){
     }
   }
   $("countline").innerHTML = sayacHtml;
+  gorunumuSakla();
   const tmz = $("sanatci-temizle");
   if(tmz) tmz.addEventListener("click", function(){ state.sanatci = null; apply(); });
   const etmz = $("ekstra-temizle");
@@ -910,6 +962,8 @@ function cardBadges(r){
   else if(r.durum === "Satıldı (teyitsiz)") h += '<span class="badge unsure">SATILDI?</span>';
   if(r.koleksiyon === "Evet") h += '<span class="badge kol">KOLEKSİYON</span>';
   if(r._yeni) h += '<span class="badge pend">YENİ</span>';
+  if(admin && !fotoAdet(r) && CIHAZ_FOTO[String(r.no)])
+    h += '<span class="badge hazir">📱 FOTO HAZIR</span>';
   return h;
 }
 function kartBaslik(r){
@@ -930,7 +984,11 @@ function renderMore(){
     const b = document.createElement("button");
     b.className = "card"; b.type = "button";
     const img = thumbUrl(r), adet = fotoAdet(r);
-    b.innerHTML = '<div class="thumb">' + cardBadges(r) +
+    const yildizHtml = (admin && benKim === "Mert")
+      ? '<button type="button" class="kol-yildiz' + (r.koleksiyon === "Evet" ? " on" : "") +
+        '" data-no="' + r.no + '" title="Koleksiyon işaretle/kaldır">★</button>'
+      : "";
+    b.innerHTML = '<div class="thumb">' + yildizHtml + cardBadges(r) +
       (img ? '<img loading="lazy" decoding="async" alt="">' : '<div class="nophoto">Fotoğraf yok</div>') +
       (adet > 1 ? '<span class="fotoadet">' + adet + ' foto</span>' : "") + "</div>" +
       '<div class="card-meta"><span class="no">№ ' + r.no + "</span>" +
@@ -942,7 +1000,11 @@ function renderMore(){
       im.src = img;
       im.addEventListener("error", function(){ im.outerHTML = '<div class="nophoto">Fotoğraf yok</div>'; });
     }
-    b.addEventListener("click", function(){ openModal(r); });
+    b.addEventListener("click", function(e){
+      const yz = e.target.closest(".kol-yildiz");
+      if(yz){ e.stopPropagation(); hizliKoleksiyon(r); return; }
+      openModal(r);
+    });
     frag.appendChild(b);
   }
   rendered = end;
@@ -1302,6 +1364,31 @@ $("e-geri").addEventListener("click", function(){
   toast("№ " + duzenlenen.no + " eski haline döndü");
 });
 
+function hizliKoleksiyon(r){
+  const yeniDeger = r.koleksiyon === "Evet" ? "" : "Evet";
+  const zaman = new Date().toISOString();
+  if(r._yeni){
+    let var0 = false;
+    for(let i = 0; i < NEW.length; i++) if(String(NEW[i].no) === String(r.no)){
+      NEW[i].koleksiyon = yeniDeger; NEW[i].guncelleme = zaman; var0 = true;
+    }
+    if(!var0){
+      const kopya = {};
+      for(const kk in r) if(kk.charAt(0) !== "_") kopya[kk] = r[kk];
+      kopya._id = r._id || ("e" + r.no);
+      kopya.koleksiyon = yeniDeger; kopya.guncelleme = zaman; kopya.fotolar = [];
+      NEW.push(kopya);
+    }
+    lsSet(LS_NEW, NEW);
+  } else {
+    OV[r.no] = Object.assign({}, OV[r.no] || {}, {koleksiyon: yeniDeger, guncelleme: zaman});
+    lsSet(LS_OV, OV);
+  }
+  logEkle({tur:"duzenleme", no: r.no, fark: {koleksiyon: [r.koleksiyon || "", yeniDeger]}});
+  rerender(true);
+  toast("№ " + r.no + (yeniDeger ? " koleksiyona eklendi ★" : " koleksiyondan çıkarıldı") + " — Onayla ile yayınla.");
+}
+
 /* ================= disa aktarim ================= */
 let dlNS = null;   // claude.ai artifact goruntusunde indirme aracisi
 if(window.claude && typeof window.claude.use === "function"){
@@ -1511,7 +1598,12 @@ async function ghJsonAl(){
 async function ghDosyaYaz(yol, b64, mesaj, sha){
   const govde = {message: mesaj, content: b64, branch: GH.dal};
   if(sha) govde.sha = sha;
-  let r = await ghIstek("contents/" + yol, {method: "PUT", body: JSON.stringify(govde)});
+  let r;
+  try{ r = await ghIstek("contents/" + yol, {method: "PUT", body: JSON.stringify(govde)}); }
+  catch(agHatasi){
+    await new Promise(function(res){ setTimeout(res, 1500); });   // mobil ag takildi: bir nefes, bir deneme daha
+    r = await ghIstek("contents/" + yol, {method: "PUT", body: JSON.stringify(govde)});
+  }
   if(r.status === 422 || r.status === 409){
     const m = await ghIstek("contents/" + yol + "?ref=" + GH.dal);
     if(m.ok){
@@ -1568,11 +1660,19 @@ function sonGuncellemeYaz(){
 }
 let onayCalisiyor = false;
 let sonOnayHatasi = "";
-async function onaylaVeYayinla(){
+let sonSecim = null;   // basarisiz denemede "tekrar dene" ayni secimle calissin
+async function onaylaVeYayinla(secim){
   if(onayCalisiyor) return;
   if(!ghTok()){ $("tk-msg").textContent = ""; $("tk-in").value = ""; $("tokenmodal").showModal(); return; }
-  const bekleyen = Object.keys(OV).length + NEW.length;
-  if(!bekleyen){ toast("Onay bekleyen değişiklik yok."); return; }
+  secim = secim || {ovNolar: Object.keys(OV), newNolar: NEW.map(function(n){ return String(n.no); })};
+  sonSecim = secim;
+  const secOV = {};
+  secim.ovNolar.forEach(function(no){ if(OV[no]) secOV[no] = OV[no]; });
+  const secNoSet = {};
+  secim.newNolar.forEach(function(no){ secNoSet[String(no)] = 1; });
+  const secNEW = NEW.filter(function(n){ return secNoSet[String(n.no)]; });
+  const bekleyen = Object.keys(secOV).length + secNEW.length;
+  if(!bekleyen){ toast("Seçili değişiklik yok."); return; }
   onayCalisiyor = true;
   const btn = $("btn-onay");
   btn.disabled = true; btn.textContent = "☁ Yayınlanıyor…";
@@ -1591,8 +1691,8 @@ async function onaylaVeYayinla(){
       veri.fotolar = veri.fotolar || {};
       veri.gecmis_log = veri.gecmis_log || [];
       let fotoSayac = 0;
-      for(const no in OV){
-        const ov = Object.assign({}, OV[no]);
+      for(const no in secOV){
+        const ov = Object.assign({}, secOV[no]);
         const ekler = ov._ekFotoK || [];
         if(ekler.length){
           const mev = FOTO[no] || veri.fotolar[no] || [0, 0];
@@ -1616,12 +1716,12 @@ async function onaylaVeYayinla(){
       }
       // Ayni arsiv no'ya birden fazla bekleyen varsa once tek kayda indir (fotolar birlesir)
       const noGrup = {};
-      for(let j0 = 0; j0 < NEW.length; j0++){
-        const r0 = NEW[j0], key0 = String(r0.no);
+      for(let j0 = 0; j0 < secNEW.length; j0++){
+        const r0 = secNEW[j0], key0 = String(r0.no);
         if(noGrup[key0]){
           const eskiF = noGrup[key0].fotolar || [];
           Object.assign(noGrup[key0], r0);
-          noGrup[key0].fotolar = eskiF.concat(r0.fotolar || []);
+          noGrup[key0].fotolar = fotoTekil(eskiF.concat(r0.fotolar || []));
         } else noGrup[key0] = Object.assign({}, r0);
       }
       const islenecek = Object.keys(noGrup).map(function(k0){ return noGrup[k0]; });
@@ -1652,7 +1752,11 @@ async function onaylaVeYayinla(){
         if(!vardi) veri.yeni_eserler.push(temiz);
       }
       btn.textContent = "☁ Kaydediliyor…";
-      veri.gecmis_log = veri.gecmis_log.concat(LOG);
+      const onayNoSet = {};
+      Object.keys(secOV).forEach(function(no){ onayNoSet[String(no)] = 1; });
+      secNEW.forEach(function(n){ onayNoSet[String(n.no)] = 1; });
+      const gidenLog = LOG.filter(function(g){ return g.tur === "sanatci" || onayNoSet[String(g.no)]; });
+      veri.gecmis_log = veri.gecmis_log.concat(gidenLog);
       veri.son = {t: new Date().toISOString(), kim: benKim || "?"};
       try{
         await ghDosyaYaz("data/degisiklikler.json",
@@ -1665,7 +1769,10 @@ async function onaylaVeYayinla(){
       SRV_OV = veri.degisiklikler;
       SRV_NEW = veri.yeni_eserler.map(function(n){ return Object.assign({}, n); });
       for(const no2 in veri.fotolar) FOTO[no2] = veri.fotolar[no2];
-      OV = {}; NEW = []; LOG = [];
+      Object.keys(secOV).forEach(function(no){ delete OV[no]; });
+      NEW = NEW.filter(function(n){ return !onayNoSet[String(n.no)]; });
+      LOG = LOG.filter(function(g){ return !(g.tur === "sanatci" || onayNoSet[String(g.no)]); });
+      sonSecim = null;
       lsSet(LS_OV, OV); lsSet(LS_NEW, NEW); lsSet(LS_LOG, LOG);
       SRV_LOG = veri.gecmis_log; SRV_SON = veri.son;
       sonGuncellemeYaz();
@@ -1688,7 +1795,68 @@ async function onaylaVeYayinla(){
   btn.disabled = false;
   panelUygula();
 }
-$("btn-onay").addEventListener("click", onaylaVeYayinla);
+function onayOnizlemeAc(){
+  if(!Object.keys(OV).length && !NEW.length){ toast("Onay bekleyen değişiklik yok."); return; }
+  const satirlar = [];
+  const bekTek = {};
+  NEW.forEach(function(n2){ bekTek[String(n2.no)] = bekTek[String(n2.no)] || n2; });
+  Object.keys(bekTek).sort(function(a,b){ return a-b; }).forEach(function(no){
+    const n2 = bekTek[no];
+    const fs = fotoTekil(NEW.filter(function(x){ return String(x.no) === no; })
+                 .reduce(function(acc, x){ return acc.concat(x.fotolar || []); }, [])).length;
+    satirlar.push({tip:"new", no:no, baslik:"№ " + no + " — YENİ ESER",
+      detay:(n2.sanatci || n2.aciklama || n2.teknik || "") + (fs ? " · " + fs + " foto" : "")});
+  });
+  Object.keys(OV).sort(function(a,b){ return a-b; }).forEach(function(no){
+    const alanlar = Object.keys(OV[no]).filter(function(k){
+      return k.charAt(0) !== "_" && ["guncelleme","olcu_a","olcu_b"].indexOf(k) < 0;
+    }).map(function(k){ return ALAN_AD[k] || k; });
+    const ekF = (OV[no]._ekFotoK || []).length;
+    satirlar.push({tip:"ov", no:no, baslik:"№ " + no + " — düzenleme",
+      detay: alanlar.join(", ") + (ekF ? (alanlar.length ? " · " : "") + "+" + ekF + " foto" : "")});
+  });
+  $("onay-liste").innerHTML = satirlar.map(function(r, i){
+    return '<div class="on-satir" data-tip="' + r.tip + '" data-no="' + r.no + '">' +
+      '<input type="checkbox" checked aria-label="Dahil et">' +
+      '<div class="on-govde"><div class="on-baslik">' + esc(r.baslik) + '</div>' +
+      '<div class="on-detay">' + esc(r.detay) + '</div></div>' +
+      '<button type="button" class="on-sil" title="Bu değişikliği tamamen sil">🗑</button></div>';
+  }).join("");
+  onaySayaciniGuncelle();
+  $("onaymodal").showModal();
+}
+function onaySayaciniGuncelle(){
+  const secili = $("onay-liste").querySelectorAll("input:checked").length;
+  $("om-yayinla").textContent = "Seçilenleri yayınla (" + secili + ")";
+  $("om-yayinla").disabled = !secili;
+}
+$("onay-liste").addEventListener("change", onaySayaciniGuncelle);
+$("onay-liste").addEventListener("click", function(e){
+  const sil = e.target.closest(".on-sil");
+  if(!sil) return;
+  const satir = sil.closest(".on-satir");
+  const no = satir.getAttribute("data-no"), tip = satir.getAttribute("data-tip");
+  if(tip === "new") NEW = NEW.filter(function(n){ return String(n.no) !== no; });
+  else delete OV[no];
+  LOG = LOG.filter(function(g){ return String(g.no) !== no; });
+  lsSet(LS_OV, OV); lsSet(LS_NEW, NEW); lsSet(LS_LOG, LOG);
+  satir.remove();
+  onaySayaciniGuncelle();
+  rerender(true); panelUygula();
+  toast("№ " + no + " değişikliği silindi.");
+});
+$("om-yayinla").addEventListener("click", function(){
+  const ovNolar = [], newNolar = [];
+  $("onay-liste").querySelectorAll(".on-satir").forEach(function(r){
+    if(!r.querySelector("input").checked) return;
+    (r.getAttribute("data-tip") === "new" ? newNolar : ovNolar).push(r.getAttribute("data-no"));
+  });
+  $("onaymodal").close();
+  onaylaVeYayinla({ovNolar: ovNolar, newNolar: newNolar});
+});
+$("om-close").addEventListener("click", function(){ $("onaymodal").close(); });
+$("om-vazgec").addEventListener("click", function(){ $("onaymodal").close(); });
+$("btn-onay").addEventListener("click", onayOnizlemeAc);
 function gecmisGoster(){
   const hepsi = [];
   for(let i = 0; i < LOG.length; i++) hepsi.push(Object.assign({_bek: true}, LOG[i]));
@@ -1754,8 +1922,12 @@ function panelUygula(){
   onay.classList.toggle("hide", !(admin && n));
   if(admin && n && !onayCalisiyor) onay.textContent = "☁ Onayla (" + n + ")";
   $("panel-note").classList.toggle("hide", !(admin && (n || sonOnayHatasi)));
-  if(admin && sonOnayHatasi)
-    $("panel-note").textContent = "⛔ Son yayın denemesi BAŞARISIZ (" + sonOnayHatasi + "). Değişikliklerin cihazda güvende — bağlantı varken ☁ Onayla'ya tekrar bas.";
+  if(admin && sonOnayHatasi){
+    $("panel-note").innerHTML = "⛔ Yayın BAŞARISIZ (" + esc(sonOnayHatasi) + "). Değişikliklerin cihazda güvende. " +
+      '<button type="button" id="btn-tekrar" class="btn-gold" style="padding:4px 12px;font-size:12.5px;margin-left:6px">↻ Tekrar dene</button>';
+    const bt = $("btn-tekrar");
+    if(bt) bt.addEventListener("click", function(){ onaylaVeYayinla(sonSecim); });
+  }
   else if(admin && n)
     $("panel-note").textContent = "⚠ " + n + " değişiklik onay bekliyor — ☁ Onayla ile siteye işle, herkes görsün.";
 }
@@ -1789,6 +1961,33 @@ $("f-kol").addEventListener("click", function(e){ state.kol = !state.kol; e.curr
 $("f-fotosuz").addEventListener("click", function(e){ state.fotosuz = !state.fotosuz; e.currentTarget.setAttribute("aria-pressed", state.fotosuz); apply(); });
 $("f-eksik").addEventListener("click", function(e){ state.eksik = !state.eksik; e.currentTarget.setAttribute("aria-pressed", state.eksik); apply(); });
 
+const LS_GORUNUM = "tml_gorunum";
+function gorunumuSakla(){
+  if(!admin) return;
+  try{
+    localStorage.setItem(LS_GORUNUM, JSON.stringify({
+      kol: state.kol, durum: state.durum, teknik: state.teknik, mecra: state.mecra,
+      sirala: state.sirala, fotosuz: state.fotosuz, eksik: state.eksik,
+      sanatci: state.sanatci, ekstra: state.ekstra
+    }));
+  }catch(e){}
+}
+function gorunumuYukle(){
+  if(!admin) return;
+  try{
+    const g = JSON.parse(localStorage.getItem(LS_GORUNUM) || "null");
+    if(!g) return;
+    state.kol = !!g.kol; state.durum = g.durum || ""; state.teknik = g.teknik || "";
+    state.mecra = g.mecra || ""; state.sirala = g.sirala || "no";
+    state.fotosuz = !!g.fotosuz; state.eksik = !!g.eksik;
+    state.sanatci = (g.sanatci === undefined ? null : g.sanatci); state.ekstra = g.ekstra || null;
+    $("f-kol").setAttribute("aria-pressed", state.kol);
+    $("f-durum").value = state.durum; $("f-teknik").value = state.teknik;
+    $("f-mecra").value = state.mecra; $("f-sirala").value = state.sirala;
+    $("f-fotosuz").setAttribute("aria-pressed", state.fotosuz);
+    $("f-eksik").setAttribute("aria-pressed", state.eksik);
+  }catch(e){}
+}
 function rerender(korunsun){ rebuildAll(); renderStats(); renderFilterOptions(); panelUygula(); apply(korunsun); }
 
 /* ================= acilis ================= */
@@ -1804,9 +2003,11 @@ try{
     benKim = KIMLIK[kayitliKim.toLocaleLowerCase("tr")] || kayitliKim;
   }
 }catch(e){}
+gorunumuYukle();
 rerender();
 // Onaylanmis (herkese yayilmis) degisiklikleri arka planda yukle ve yerinde tazele
 sunucuDegisiklikleriniYukle().then(function(){ rerender(true); });
+cihazFotolariniTara();
 })();
 </script>
 </body>
