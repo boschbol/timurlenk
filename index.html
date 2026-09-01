@@ -678,13 +678,25 @@ function rebuildAll(){
     if(OV[b.no]){ Object.assign(r, OV[b.no]); r._duzenli = true; r._bekleyen = true; }
     out.push(prep(r));
   }
-  const yerelId = {};
-  for(let j = 0; j < NEW.length; j++) yerelId[NEW[j]._id] = 1;
-  for(let k = 0; k < SRV_NEW.length; k++){
-    if(yerelId[SRV_NEW[k]._id]) continue;
-    out.push(prep(Object.assign({}, SRV_NEW[k], {_yeni:true, _srv:true})));
+  const yerelNo = {};
+  for(let j = 0; j < NEW.length; j++) yerelNo[String(NEW[j].no)] = 1;
+  const srvTekil = {};
+  for(let k = 0; k < SRV_NEW.length; k++) srvTekil[String(SRV_NEW[k].no)] = SRV_NEW[k];  // ayni no'da sonuncu gecerli
+  for(const noKey in srvTekil){
+    if(yerelNo[noKey]) continue;                       // bekleyen kopya varsa onu goster
+    out.push(prep(Object.assign({}, srvTekil[noKey], {_yeni:true, _srv:true})));
   }
-  for(let j = 0; j < NEW.length; j++) out.push(prep(Object.assign({}, NEW[j], {_yeni:true, _bekleyen:true})));
+  // Ayni no'lu birden fazla bekleyen: gorunumde tek kayit (sonuncu; fotograflar birlesik)
+  const bekTekil = {};
+  for(let j = 0; j < NEW.length; j++){
+    const key = String(NEW[j].no);
+    if(bekTekil[key]){
+      const eskiF = bekTekil[key].fotolar || [];
+      bekTekil[key] = Object.assign({}, bekTekil[key], NEW[j]);
+      bekTekil[key].fotolar = eskiF.concat(NEW[j].fotolar || []);
+    } else bekTekil[key] = Object.assign({}, NEW[j]);
+  }
+  for(const bk in bekTekil) out.push(prep(Object.assign({}, bekTekil[bk], {_yeni:true, _bekleyen:true})));
   ALL = out;
 }
 function fotoAdet(r){
@@ -731,7 +743,9 @@ let toastT;
 function toast(msg){
   const t = $("toast");
   t.textContent = msg; t.classList.add("show");
-  clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove("show"); }, 3200);
+  clearTimeout(toastT);
+  const sure = (msg.indexOf("Yayınlanamadı") >= 0 || msg.indexOf("⛔") >= 0) ? 7000 : 3200;
+  toastT = setTimeout(function(){ t.classList.remove("show"); }, sure);
 }
 
 /* ================= istatistik + filtreler ================= */
@@ -1235,7 +1249,7 @@ $("editform").addEventListener("submit", function(e){
     ov.olcu_a = veri.olcu_a; ov.olcu_b = veri.olcu_b; ov.guncelleme = veri.guncelleme;
     if(duzenlenen._yeni){
       let bulundu = false;
-      for(let i = 0; i < NEW.length; i++) if(NEW[i]._id === duzenlenen._id){
+      for(let i = 0; i < NEW.length; i++) if(String(NEW[i].no) === String(duzenlenen.no)){
         Object.assign(NEW[i], veri, {fotolar:(NEW[i].fotolar || []).concat(fotoKucukler)});
         bulundu = true;
       }
@@ -1510,7 +1524,7 @@ async function ghDosyaYaz(yol, b64, mesaj, sha){
 function kayitTemizle(r){
   const out = {};
   for(const k in r){
-    if(k.charAt(0) === "_" || k === "img" || k === "fotolar") continue;
+    if((k.charAt(0) === "_" && k !== "_id") || k === "img" || k === "fotolar") continue;
     out[k] = r[k];
   }
   return out;
@@ -1553,6 +1567,7 @@ function sonGuncellemeYaz(){
   } else el.textContent = "";
 }
 let onayCalisiyor = false;
+let sonOnayHatasi = "";
 async function onaylaVeYayinla(){
   if(onayCalisiyor) return;
   if(!ghTok()){ $("tk-msg").textContent = ""; $("tk-in").value = ""; $("tokenmodal").showModal(); return; }
@@ -1567,6 +1582,12 @@ async function onaylaVeYayinla(){
       const veri = u.veri;
       veri.degisiklikler = veri.degisiklikler || {};
       veri.yeni_eserler = veri.yeni_eserler || [];
+      const srvNoGorulen = {};
+      veri.yeni_eserler = veri.yeni_eserler.filter(function(g){
+        const kk = String(g.no);
+        if(srvNoGorulen[kk]) return false;
+        srvNoGorulen[kk] = 1; return true;
+      });
       veri.fotolar = veri.fotolar || {};
       veri.gecmis_log = veri.gecmis_log || [];
       let fotoSayac = 0;
@@ -1583,16 +1604,29 @@ async function onaylaVeYayinla(){
             await ghDosyaYaz("f/" + no + "-" + son + ".jpg", ekler[i].split(",")[1], "Foto: " + no + "-" + son);
           }
           if(fotoYoktu){
-            const kucuk = await dataUrlKucult(ekler[0], 220, .6);
-            await ghDosyaYaz("k/" + no + ".jpg", kucuk.split(",")[1], "Kucuk: " + no);
+            let kucukB64;
+            try{ kucukB64 = (await dataUrlKucult(ekler[0], 220, .6)).split(",")[1]; }
+            catch(e2){ kucukB64 = ekler[0].split(",")[1]; }   // kucultme olmadiysa kapak = fotografin kendisi
+            await ghDosyaYaz("k/" + no + ".jpg", kucukB64, "Kucuk: " + no);
           }
           veri.fotolar[no] = [adet, son];
         }
         delete ov._ekFoto; delete ov._ekFotoK;
         veri.degisiklikler[no] = Object.assign({}, veri.degisiklikler[no] || {}, kayitTemizle(ov));
       }
-      for(let j = 0; j < NEW.length; j++){
-        const rec = NEW[j];
+      // Ayni arsiv no'ya birden fazla bekleyen varsa once tek kayda indir (fotolar birlesir)
+      const noGrup = {};
+      for(let j0 = 0; j0 < NEW.length; j0++){
+        const r0 = NEW[j0], key0 = String(r0.no);
+        if(noGrup[key0]){
+          const eskiF = noGrup[key0].fotolar || [];
+          Object.assign(noGrup[key0], r0);
+          noGrup[key0].fotolar = eskiF.concat(r0.fotolar || []);
+        } else noGrup[key0] = Object.assign({}, r0);
+      }
+      const islenecek = Object.keys(noGrup).map(function(k0){ return noGrup[k0]; });
+      for(let j = 0; j < islenecek.length; j++){
+        const rec = islenecek[j];
         const fotolar = rec.fotolar || [];
         const mev = FOTO[rec.no] || veri.fotolar[rec.no] || [0, 0];
         let adet = mev[0], son = mev[1] || mev[0];
@@ -1603,14 +1637,17 @@ async function onaylaVeYayinla(){
           await ghDosyaYaz("f/" + rec.no + "-" + son + ".jpg", fotolar[i].k.split(",")[1], "Foto: " + rec.no + "-" + son);
         }
         if(fotolar.length && fotoYoktu){
-          const kucuk = await dataUrlKucult(fotolar[0].k, 220, .6);
-          await ghDosyaYaz("k/" + rec.no + ".jpg", kucuk.split(",")[1], "Kucuk: " + rec.no);
+          let kucukB64;
+          try{ kucukB64 = (await dataUrlKucult(fotolar[0].k, 220, .6)).split(",")[1]; }
+          catch(e2){ kucukB64 = fotolar[0].k.split(",")[1]; }
+          await ghDosyaYaz("k/" + rec.no + ".jpg", kucukB64, "Kucuk: " + rec.no);
         }
         if(adet) veri.fotolar[rec.no] = [adet, son];
         const temiz = kayitTemizle(rec);
+        if(!temiz._id) temiz._id = "e" + rec.no;
         let vardi = false;
         for(let t = 0; t < veri.yeni_eserler.length; t++){
-          if(veri.yeni_eserler[t]._id === rec._id){ veri.yeni_eserler[t] = temiz; vardi = true; break; }
+          if(String(veri.yeni_eserler[t].no) === String(rec.no)){ veri.yeni_eserler[t] = temiz; vardi = true; break; }
         }
         if(!vardi) veri.yeni_eserler.push(temiz);
       }
@@ -1632,6 +1669,7 @@ async function onaylaVeYayinla(){
       lsSet(LS_OV, OV); lsSet(LS_NEW, NEW); lsSet(LS_LOG, LOG);
       SRV_LOG = veri.gecmis_log; SRV_SON = veri.son;
       sonGuncellemeYaz();
+      sonOnayHatasi = "";
       rerender(true);
       toast("Yayınlandı ✓ — diğer cihazlarda birkaç dakika içinde görünür");
       break;
@@ -1642,7 +1680,8 @@ async function onaylaVeYayinla(){
       toast("Anahtar geçersiz ya da yetkisiz — Onayla'ya basıp yeniden gir.");
       try{ localStorage.removeItem(LS_TOK); }catch(x){}
     } else {
-      toast("Yayınlanamadı (" + m + ") — değişiklikler bu cihazda güvende.");
+      sonOnayHatasi = m;
+      toast("Yayınlanamadı (" + m + ") — değişiklikler bu cihazda güvende, tekrar dene.");
     }
   }
   onayCalisiyor = false;
@@ -1714,8 +1753,11 @@ function panelUygula(){
   const onay = $("btn-onay");
   onay.classList.toggle("hide", !(admin && n));
   if(admin && n && !onayCalisiyor) onay.textContent = "☁ Onayla (" + n + ")";
-  $("panel-note").classList.toggle("hide", !(admin && n));
-  if(admin && n) $("panel-note").textContent = "⚠ " + n + " değişiklik onay bekliyor — ☁ Onayla ile siteye işle, herkes görsün.";
+  $("panel-note").classList.toggle("hide", !(admin && (n || sonOnayHatasi)));
+  if(admin && sonOnayHatasi)
+    $("panel-note").textContent = "⛔ Son yayın denemesi BAŞARISIZ (" + sonOnayHatasi + "). Değişikliklerin cihazda güvende — bağlantı varken ☁ Onayla'ya tekrar bas.";
+  else if(admin && n)
+    $("panel-note").textContent = "⚠ " + n + " değişiklik onay bekliyor — ☁ Onayla ile siteye işle, herkes görsün.";
 }
 $("btn-panel").addEventListener("click", function(){
   if(admin){
