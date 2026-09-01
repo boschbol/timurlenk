@@ -154,6 +154,8 @@ header.masthead{max-width:1280px;margin:0 auto;padding:30px 20px 8px;display:fle
 #btn-panel.on{background:var(--gold);border-color:var(--gold);color:#fff}
 
 .statbar{max-width:1280px;margin:0 auto;padding:8px 20px 4px;display:flex;gap:26px;flex-wrap:wrap}
+.stat{text-align:left;border-radius:10px;padding:4px 8px;margin:-4px -8px}
+button.stat[data-act]:not([data-act=""]):hover{background:var(--card);box-shadow:var(--shadow)}
 .stat b{display:block;font-family:"Fraunces",Georgia,serif;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
 .stat span{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
 .stat .accent{color:var(--gold)}
@@ -251,8 +253,10 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
 /* ---- editor formu ---- */
 .form-wrap{padding:18px 20px 22px;overflow-y:auto;max-height:calc(100vh - 36px);max-height:calc(100dvh - 36px)}
 .form-wrap h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:20px}
-.fgrup{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);
-  grid-column:1/-1;margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.fgrup{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:16px;
+  font-size:12px;letter-spacing:.09em;text-transform:uppercase;font-weight:600;color:var(--gold);
+  border-left:3px solid var(--gold);background:var(--gold-soft);border-radius:0 8px 8px 0;padding:7px 12px}
+.fgrup .gizli-not{margin-left:auto;font-weight:400;font-size:10.5px;letter-spacing:.03em;text-transform:none;color:var(--ink-3)}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
 @media(max-width:560px){.fgrid{grid-template-columns:1fr}}
 .field{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -272,7 +276,9 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
   background:rgba(20,18,14,.72);color:#fff;font-size:11px;line-height:18px;text-align:center}
 .foto-mini .sira{position:absolute;bottom:2px;left:3px;font-size:9.5px;font-weight:600;color:#fff;
   background:rgba(20,18,14,.72);border-radius:4px;padding:0 4px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.form-actions{display:flex;gap:10px;margin-top:18px;align-items:center;flex-wrap:wrap}
+.form-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line);
+  margin-top:18px;padding:12px 0 4px}
 .btn-ghost{border:1px solid var(--line-2);border-radius:10px;padding:10px 16px;color:var(--ink-2)}
 .btn-sil{border:1px solid var(--sold);border-radius:10px;padding:10px 14px;color:var(--sold);font-size:13.5px;margin-left:auto}
 .form-msg{font-size:13px;color:var(--ink-2)}
@@ -460,8 +466,9 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
       <label>Fotoğraflar</label>
       <div class="foto-drop" id="foto-drop" role="button" tabindex="0">
         <div class="foto-siral" id="foto-siral"></div>
-        <div class="hint" id="foto-hint">Fotoğraf ekle — telefondan çek veya galeriden seç</div>
+        <div class="hint" id="foto-hint">Fotoğraf ekle — telefondan çek veya galeriden seç. İlk fotoğraf kapak olur.</div>
       </div>
+      <button type="button" class="btn-line hide" id="foto-kurtar" style="margin-top:8px"></button>
       <input id="e-foto" type="file" accept="image/*" multiple hidden>
     </div>
     <div class="fgrid" id="e-alanlar"></div>
@@ -730,7 +737,7 @@ function toast(msg){
 /* ================= istatistik + filtreler ================= */
 function renderStats(){
   const n = ALL.length;
-  let mevcut = 0, satilan = 0, fotolu = 0, belirsiz = 0, imzasiz = 0;
+  let mevcut = 0, satilan = 0, fotolu = 0, belirsiz = 0, imzasiz = 0, kolN = 0, konsinye = 0;
   for(let i = 0; i < ALL.length; i++){
     const r = ALL[i];
     if(r.durum === "Mevcut") mevcut++;
@@ -738,15 +745,53 @@ function renderStats(){
     if(fotoAdet(r)) fotolu++;
     if(!r.sanatci) belirsiz++;
     if(norm(r.sanatci).indexOf("imza okunam") === 0) imzasiz++;
+    if(r.koleksiyon === "Evet") kolN++;
+    if(r.sahiplik === "Konsinye") konsinye++;
   }
-  let h = '<div class="stat"><b class="accent">' + n.toLocaleString("tr") + '</b><span>Kayıt</span></div>' +
-          '<div class="stat"><b>' + mevcut.toLocaleString("tr") + '</b><span>Mevcut</span></div>' +
-          '<div class="stat"><b>' + satilan.toLocaleString("tr") + '</b><span>Satılan</span></div>' +
-          '<div class="stat"><b>' + fotolu.toLocaleString("tr") + '</b><span>Fotoğraflı</span></div>' +
-          '<div class="stat"><b>' + imzasiz.toLocaleString("tr") + '</b><span>İmzası okunamayan</span></div>';
-  if(admin) h += '<div class="stat"><b>' + belirsiz.toLocaleString("tr") + '</b><span>Sanatçısı boş</span></div>';
+  function stat(deger, etiket, act, vurgu){
+    return '<button type="button" class="stat" data-act="' + (act || "") + '">' +
+           '<b' + (vurgu ? ' class="accent"' : "") + '>' + deger.toLocaleString("tr") + "</b>" +
+           "<span>" + etiket + "</span></button>";
+  }
+  let h = stat(n, "Kayıt", "temizle", true) +
+          stat(mevcut, "Mevcut", "mevcut") +
+          stat(satilan, "Satılan", "satilan") +
+          stat(fotolu, "Fotoğraflı", "") +
+          stat(imzasiz, "İmzası okunamayan", "imzasiz");
+  if(admin){
+    h += stat(belirsiz, "Sanatçısı boş", "bos") +
+         stat(kolN, "Koleksiyon", "koleksiyon") +
+         stat(konsinye, "Konsinye", "konsinye") +
+         stat(n - fotolu, "Fotoğrafsız", "fotografsiz") +
+         stat(Object.keys(OV).length + NEW.length, "Onay bekleyen", "bekleyen");
+  }
   $("statbar").innerHTML = h;
 }
+$("statbar").addEventListener("click", function(e){
+  const b = e.target.closest(".stat");
+  if(!b) return;
+  const act = b.getAttribute("data-act");
+  if(!act) return;
+  if(act === "bekleyen"){ gecmisGoster(); return; }
+  if(act === "temizle"){
+    state.q = ""; $("q").value = "";
+    state.durum = ""; $("f-durum").value = "";
+    state.teknik = ""; $("f-teknik").value = "";
+    state.mecra = ""; $("f-mecra").value = "";
+    state.eksik = false; $("f-eksik").setAttribute("aria-pressed", false);
+    state.fotosuz = false; $("f-fotosuz").setAttribute("aria-pressed", false);
+    state.sanatci = null; state.ekstra = null;
+  }
+  else if(act === "mevcut"){ state.durum = "Mevcut"; $("f-durum").value = "Mevcut"; state.ekstra = null; }
+  else if(act === "satilan"){ state.durum = "Satıldı"; $("f-durum").value = "Satıldı"; state.ekstra = null; }
+  else if(act === "imzasiz") state.ekstra = {tip:"imzasiz", etiket:"İmzası okunamayanlar"};
+  else if(act === "koleksiyon") state.ekstra = {tip:"koleksiyon", etiket:"Koleksiyon eserleri"};
+  else if(act === "konsinye") state.ekstra = {tip:"konsinye", etiket:"Konsinye eserler"};
+  else if(act === "bos"){ state.eksik = true; $("f-eksik").setAttribute("aria-pressed", true); state.ekstra = null; }
+  else if(act === "fotografsiz"){ state.fotosuz = true; $("f-fotosuz").setAttribute("aria-pressed", true); state.ekstra = null; }
+  window.scrollTo(0, 0);
+  apply();
+});
 function renderFilterOptions(){
   const aileler = {};
   for(let i = 0; i < ALL.length; i++){ const a = ALL[i]._aile; if(a) aileler[a] = (aileler[a] || 0) + 1; }
@@ -775,7 +820,7 @@ function renderFilterOptions(){
 /* ================= filtreleme ================= */
 let view = [];
 // Site acildiginda koleksiyon eserleri secili gelir; kullanici dugmeye basip tum envantere doner.
-const state = { q:"", durum:"", teknik:"", mecra:"", sirala:"no", kol:true, fotosuz:false, eksik:false, sanatci:null };
+const state = { q:"", durum:"", teknik:"", mecra:"", sirala:"no", kol:true, fotosuz:false, eksik:false, sanatci:null, ekstra:null };
 function alan(r){ return (r.olcu_a && r.olcu_b) ? r.olcu_a * r.olcu_b : null; }
 function apply(korunsun){
   const eskiSayi = korunsun ? rendered : 0;
@@ -790,6 +835,11 @@ function apply(korunsun){
     if(state.fotosuz && fotoAdet(r)) return false;
     if(state.eksik && r.sanatci) return false;
     if(state.sanatci !== null && (r.sanatci || "") !== state.sanatci) return false;
+    if(state.ekstra){
+      if(state.ekstra.tip === "imzasiz" && norm(r.sanatci).indexOf("imza okunam") !== 0) return false;
+      if(state.ekstra.tip === "koleksiyon" && r.koleksiyon !== "Evet") return false;
+      if(state.ekstra.tip === "konsinye" && r.sahiplik !== "Konsinye") return false;
+    }
     return true;
   });
   const s = state.sirala;
@@ -812,6 +862,10 @@ function apply(korunsun){
     sayacHtml += '<span class="aktif-filtre">' + (esc(state.sanatci) || "Sanatçısı boş") +
                  ' <button type="button" id="sanatci-temizle" aria-label="Sanatçı filtresini kaldır">✕</button></span>';
   }
+  if(state.ekstra){
+    sayacHtml += '<span class="aktif-filtre">' + esc(state.ekstra.etiket) +
+                 ' <button type="button" id="ekstra-temizle" aria-label="Filtreyi kaldır">✕</button></span>';
+  }
   kolAyracIdx = -1;
   if(state.kol){
     for(let ai = 0; ai < view.length; ai++){
@@ -821,6 +875,8 @@ function apply(korunsun){
   $("countline").innerHTML = sayacHtml;
   const tmz = $("sanatci-temizle");
   if(tmz) tmz.addEventListener("click", function(){ state.sanatci = null; apply(); });
+  const etmz = $("ekstra-temizle");
+  if(etmz) etmz.addEventListener("click", function(){ state.ekstra = null; apply(); });
   rendered = 0; $("grid").innerHTML = ""; renderMore();
   if(korunsun){
     // Duzenlemeden once nereye kadar acilmissa oraya kadar geri ac, sonra ayni noktaya don
@@ -954,6 +1010,9 @@ function openModal(r){
        row("Yön", esc(r.oryantasyon)) + row("Klasik / Modern", esc(r.klasik_modern)) +
        row("Depo konumu", esc(r.konum));
   if(admin){
+    const srvFoto = FOTO[r.no] ? FOTO[r.no][0] : (r._yeni ? 0 : 0);
+    const bekFoto = r._yeni ? ((r.fotolar || []).length) : (r._ekFoto || 0);
+    h += row("Fotoğraflar", '<span class="mono">sunucuda ' + srvFoto + (bekFoto ? " · onay bekleyen " + bekFoto : "") + "</span>");
     let prov = row("Sahiplik", esc(r.sahiplik)) +
                row("Kimden alındı", esc(r.temin)) + row("Ne zaman alındı", esc(r.alim_tarihi)) +
                row("Nereden alındı", esc(r.alim_yer)) + row("Alış bedeli", esc(r.alim_bedel)) +
@@ -987,11 +1046,16 @@ function fieldHtml(f){
   }
   return '<div class="field' + wide + '"><label for="e-' + f.k + '">' + f.l + "</label>" + inner + "</div>";
 }
+const GRUP_SIMGE = {"Eser":"🖼️", "Ölçü":"📐", "Durum":"🏷️", "Köken":"🧾"};
 function buildForm(){
   let h = "", g = null;
   for(let i = 0; i < FIELDS.length; i++){
     const f = FIELDS[i];
-    if(f.g !== g){ g = f.g; h += '<div class="fgrup">' + g + "</div>"; }
+    if(f.g !== g){
+      g = f.g;
+      h += '<div class="fgrup">' + (GRUP_SIMGE[g] || "") + " " + g +
+           (g === "Köken" ? '<span class="gizli-not">yalnız panelde görünür</span>' : "") + "</div>";
+    }
     h += fieldHtml(f);
   }
   $("e-alanlar").innerHTML = h;
@@ -1022,6 +1086,39 @@ function fotoAdlariYenile(){
     formFotolar[i].adi = (isNaN(no) ? "?" : no) + (idx === 1 ? "" : "-" + idx) + ".jpg";
   }
 }
+async function cihazAsillariBul(no){
+  try{
+    const keys = await idbKeys();
+    const kalip = new RegExp("^" + no + "(-\\d+)?\\.jpg$");
+    return (keys || []).filter(function(k){ return kalip.test(String(k)); }).sort();
+  }catch(e){ return []; }
+}
+function kurtarmaTeklifEt(no){
+  const b = $("foto-kurtar");
+  b.classList.add("hide");
+  if(!no) return;
+  cihazAsillariBul(no).then(function(keys){
+    if(!keys.length || !$("editmodal").open) return;
+    b.textContent = "📱 Bu cihazda № " + no + " için " + keys.length + " asıl fotoğraf bulundu — kullan";
+    b.classList.remove("hide");
+    b.onclick = async function(){
+      b.disabled = true; b.textContent = "Fotoğraflar hazırlanıyor…";
+      try{
+        for(let i = 0; i < keys.length; i++){
+          const v = await idbGet(keys[i]);
+          if(!(v && v.blob)) continue;
+          const url = URL.createObjectURL(v.blob);
+          const kucukDataUrl = await dataUrlKucult(url, 700, .68);
+          URL.revokeObjectURL(url);
+          formFotolar.push({k: kucukDataUrl, blob: v.blob, adi: ""});
+        }
+        fotoAdlariYenile(); fotoSiraliCiz();
+        toast(keys.length + " fotoğraf forma eklendi — Kaydet'e, sonra ☁ Onayla'ya bas.");
+      }catch(e){ toast("Fotoğraflar okunamadı: " + e.message); }
+      b.disabled = false; b.classList.add("hide");
+    };
+  });
+}
 function openEditor(r){
   duzenlenen = r || null;
   buildForm();
@@ -1042,6 +1139,7 @@ function openEditor(r){
   }
   fotoSiraliCiz();
   $("editmodal").showModal();
+  kurtarmaTeklifEt(r ? r.no : parseInt(getVal("no"), 10));
 }
 $("btn-add").addEventListener("click", function(){ openEditor(null); });
 $("e-close").addEventListener("click", function(){ $("editmodal").close(); });
@@ -1136,8 +1234,21 @@ $("editform").addEventListener("submit", function(e){
       logEkle({tur:"duzenleme", no: no, fark: fark, foto: fotoKucukler.length});
     ov.olcu_a = veri.olcu_a; ov.olcu_b = veri.olcu_b; ov.guncelleme = veri.guncelleme;
     if(duzenlenen._yeni){
+      let bulundu = false;
       for(let i = 0; i < NEW.length; i++) if(NEW[i]._id === duzenlenen._id){
         Object.assign(NEW[i], veri, {fotolar:(NEW[i].fotolar || []).concat(fotoKucukler)});
+        bulundu = true;
+      }
+      if(!bulundu){
+        // Onaylanmis (sunucudaki) yeni eser duzenleniyor: bekleyen kopyasini olustur.
+        const kopya = {};
+        for(const kk in duzenlenen) if(kk.charAt(0) !== "_") kopya[kk] = duzenlenen[kk];
+        Object.assign(kopya, veri);
+        kopya._id = duzenlenen._id || ("e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7));
+        kopya.mecralar = duzenlenen.mecralar || [];
+        kopya.eklenme = duzenlenen.eklenme || kopya.guncelleme;
+        kopya.fotolar = fotoKucukler;
+        NEW.push(kopya);
       }
       lsSet(LS_NEW, NEW);
     } else {
