@@ -298,6 +298,23 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
 .foto-mini.kapak{outline:2px solid var(--gold);outline-offset:1px}
 #fs-liste .foto-mini{width:84px;height:84px}
 .fs-not{color:var(--ink-2);font-size:13px;margin-top:8px}
+.foto-mini .kes{position:absolute;bottom:2px;right:2px;width:18px;height:18px;border-radius:50%;
+  background:rgba(20,18,14,.72);color:#fff;font-size:10px;line-height:18px;text-align:center}
+#fs-liste .foto-mini .kes{top:2px;bottom:auto}
+#fs-liste .foto-mini{cursor:zoom-in}
+.fs-buyuk{display:none;margin-top:10px;text-align:center}
+.fs-buyuk.acik{display:block}
+.fs-buyuk img{max-width:100%;max-height:40vh;border-radius:10px;border:1px solid var(--line)}
+.flat-alan{position:relative;margin-top:10px;touch-action:none;user-select:none;-webkit-user-select:none}
+.flat-alan canvas{display:block;max-width:100%;border-radius:10px;border:1px solid var(--line)}
+.flat-pin{position:absolute;width:32px;height:32px;margin:-16px 0 0 -16px;border-radius:50%;
+  border:2.5px solid var(--gold);background:rgba(20,18,14,.35);color:#fff;font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;z-index:3}
+.flat-lup{position:absolute;width:120px;height:120px;border-radius:50%;overflow:hidden;border:2px solid var(--gold);
+  pointer-events:none;display:none;background:#000;z-index:5}
+.flat-lup::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;
+  border:1.5px solid var(--gold);border-radius:50%}
+.flat-ilerleme{font-size:12.5px;color:var(--ink-2);letter-spacing:.04em}
 .gelismis-blok{grid-column:1/-1;border:1px dashed var(--line-2);border-radius:10px;padding:8px 12px 12px}
 .gelismis-blok summary{cursor:pointer;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding:4px 0}
 .gelismis-blok[open] summary{color:var(--gold)}
@@ -468,6 +485,7 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
     <button class="btn-gold hide" id="btn-onay">☁ Onayla</button>
     <button class="btn-line hide" id="btn-gecmis">🕘 Geçmiş</button>
     <button class="btn-line hide" id="btn-yonetim">⚙ Yönetim</button>
+    <button class="btn-line hide" id="btn-flathat">✂ Düzleştirme</button>
     <button class="btn-line hide" id="btn-disa">⭳ Dışa aktar</button>
   </div>
 </div>
@@ -611,14 +629,42 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
   </div>
 </dialog>
 
+<dialog id="flatmodal">
+  <div class="form-wrap">
+    <div class="modal-top">
+      <h2 id="fl-baslik" style="margin-bottom:0">Düzleştir</h2>
+      <button type="button" class="modal-close" id="fl-close" aria-label="Kapat">✕</button>
+    </div>
+    <p class="fs-not" id="fl-not">Numaralı tutamaçları çerçevenin (çerçevesizse kâğıdın/tuvalin) dış köşelerine sürükle; büyüteç yardımcı olur. Çerçeve içeride kalır, kesilmez.</p>
+    <div class="flat-alan" id="fl-alan">
+      <canvas id="fl-cv"></canvas>
+      <div class="flat-pin" data-p="0">1</div><div class="flat-pin" data-p="1">2</div>
+      <div class="flat-pin" data-p="2">3</div><div class="flat-pin" data-p="3">4</div>
+      <div class="flat-lup" id="fl-lup"><canvas id="fl-lupcv" width="120" height="120"></canvas></div>
+    </div>
+    <div class="form-msg" id="fl-msg" style="margin-top:8px"></div>
+    <div class="form-actions" style="align-items:center">
+      <button type="button" class="btn-gold" id="fl-uygula">✂ Düzleştir</button>
+      <button type="button" class="btn-ghost" id="fl-vazgec">Vazgeç</button>
+      <span class="flat-ilerleme" id="fl-ilerleme"></span>
+    </div>
+    <div class="form-actions hide" id="fl-hat-btns" style="margin-top:0">
+      <button type="button" class="btn-line" id="fl-kare-atla">Kareyi atla ▸</button>
+      <button type="button" class="btn-line" id="fl-eser-atla">Eseri atla ▸▸</button>
+      <button type="button" class="btn-line" id="fl-bitir">Bitir</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="fotosiramodal">
   <div class="form-wrap">
     <div class="modal-top">
       <h2 id="fs-baslik" style="margin-bottom:0">Fotoğraf sırası</h2>
       <button type="button" class="modal-close" id="fs-close" aria-label="Kapat">✕</button>
     </div>
-    <p class="fs-not">İlk fotoğraf kapaktır; ◀ bir sola taşır. Yayınlanan sıra herkeste görünür.</p>
+    <p class="fs-not">İlk fotoğraf kapaktır. ◀ öne taşır, ✂ düzleştirir; kareye dokununca (PC&#39;de üzerine gelince) altta büyür.</p>
     <div class="foto-siral" id="fs-liste" style="margin-top:10px"></div>
+    <div class="fs-buyuk" id="fs-buyuk"><img alt=""></div>
     <div class="form-msg" id="fs-msg" style="margin-top:8px"></div>
     <div class="form-actions">
       <button type="button" class="btn-gold" id="fs-yayinla">Sırayı yayınla</button>
@@ -1259,6 +1305,7 @@ function fotoSiraliCiz(){
   $("foto-siral").innerHTML = formFotolar.map(function(f, i){
     return '<div class="foto-mini"><img src="' + f.k + '" alt=""><span class="sira">' + f.adi +
            '</span><button type="button" class="sil" data-i="' + i + '" aria-label="Kaldır">✕</button>' +
+           '<button type="button" class="kes" data-i="' + i + '" aria-label="Düzleştir">✂</button>' +
            (i > 0 ? '<button type="button" class="one" data-i="' + i + '" aria-label="Öne taşı">◀</button>' : '') + '</div>';
   }).join("");
   $("foto-hint").textContent = formFotolar.length
@@ -1266,6 +1313,21 @@ function fotoSiraliCiz(){
     : "Fotoğraf ekle — telefondan çek veya galeriden seç";
 }
 $("foto-siral").addEventListener("click", function(e){
+  const kbtn = e.target.closest(".kes");
+  if(kbtn){
+    e.stopPropagation();
+    const i = +kbtn.dataset.i, f = formFotolar[i];
+    const url = URL.createObjectURL(f.blob);
+    flatAc(url, {baslik: "Düzleştir — " + (f.adi || "yeni fotoğraf"), cb: function(tam){
+      URL.revokeObjectURL(url);
+      dataUrlKucult(tam, 700, .68).then(function(kucuk){
+        formFotolar[i] = {k: kucuk, blob: dataUrlBlob(tam), adi: f.adi};
+        fotoSiraliCiz();
+        toast("Fotoğraf düzleştirildi — asıl da düzleşmiş haliyle saklanacak.");
+      }).catch(function(err){ toast("Düzleştirme kaydedilemedi: " + err.message); });
+    }});
+    return;
+  }
   const o = e.target.closest(".one");
   if(o){
     e.stopPropagation();
@@ -1349,7 +1411,7 @@ function openEditor(r){
 $("btn-add").addEventListener("click", function(){ openEditor(null); });
 $("e-close").addEventListener("click", function(){ $("editmodal").close(); });
 $("e-cancel").addEventListener("click", function(){ $("editmodal").close(); });
-$("foto-drop").addEventListener("click", function(e){ if(!e.target.closest(".sil,.one")) $("e-foto").click(); });
+$("foto-drop").addEventListener("click", function(e){ if(!e.target.closest(".sil,.one,.kes")) $("e-foto").click(); });
 $("foto-drop").addEventListener("keydown", function(e){ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); $("e-foto").click(); } });
 
 function kucult(file, maxside, q){
@@ -2133,6 +2195,7 @@ $("ym-kat-liste").addEventListener("click", function(e){
   inp.addEventListener("keydown", function(e2){ if(e2.key === "Enter"){ e2.preventDefault(); kaydet(); } else if(e2.key === "Escape") kategoriListele(); });
 });
 $("btn-yonetim").addEventListener("click", yonetimAc);
+$("btn-flathat").addEventListener("click", function(){ hatBaslat(); });
 $("ym-close").addEventListener("click", function(){ $("yonetimmodal").close(); });
 $("ym-kaydet").addEventListener("click", alanDuzeniYayinla);
 $("ym-alan-sec").addEventListener("change", kategoriListele);
@@ -2141,8 +2204,234 @@ $("ym-sanatcilar").addEventListener("click", function(){
   $("sn-ara").value = ""; sanatciCiz(); $("sanatcimodal").showModal();
 });
 $("gm-close").addEventListener("click", function(){ $("gecmismodal").close(); });
+/* ---- 4 köşe düzleştirme (perspektif düzeltme, cihazda) ---- */
+function dataUrlBlob(d){
+  const ham = atob(d.split(",")[1]);
+  const dizi = new Uint8Array(ham.length);
+  for(let i = 0; i < ham.length; i++) dizi[i] = ham.charCodeAt(i);
+  return new Blob([dizi], {type: "image/jpeg"});
+}
+function persKatsayi(p){   // birim kare (u,v) -> kaynak dörtgeni (TL,TR,BR,BL)
+  const d1x = p[1].x - p[2].x, d1y = p[1].y - p[2].y;
+  const d2x = p[3].x - p[2].x, d2y = p[3].y - p[2].y;
+  const sx = p[0].x - p[1].x + p[2].x - p[3].x, sy = p[0].y - p[1].y + p[2].y - p[3].y;
+  let g = 0, h = 0;
+  const den = d1x * d2y - d2x * d1y;
+  if(den && (Math.abs(sx) > 1e-9 || Math.abs(sy) > 1e-9)){
+    g = (sx * d2y - d2x * sy) / den;
+    h = (d1x * sy - sx * d1y) / den;
+  }
+  return {a: p[1].x - p[0].x + g * p[1].x, b: p[3].x - p[0].x + h * p[3].x, c: p[0].x,
+          d: p[1].y - p[0].y + g * p[1].y, e: p[3].y - p[0].y + h * p[3].y, f: p[0].y, g: g, h: h};
+}
+function persNokta(K, u, v){
+  const w = K.g * u + K.h * v + 1;
+  return {x: (K.a * u + K.b * v + K.c) / w, y: (K.d * u + K.e * v + K.f) / w};
+}
+function ucgenCiz(ctx, img, s0, s1, s2, d0, d1, d2){
+  const den = s0.x * (s1.y - s2.y) + s1.x * (s2.y - s0.y) + s2.x * (s0.y - s1.y);
+  if(!den) return;
+  const m11 = (d0.x * (s1.y - s2.y) + d1.x * (s2.y - s0.y) + d2.x * (s0.y - s1.y)) / den;
+  const m12 = (d0.x * (s2.x - s1.x) + d1.x * (s0.x - s2.x) + d2.x * (s1.x - s0.x)) / den;
+  const m21 = (d0.y * (s1.y - s2.y) + d1.y * (s2.y - s0.y) + d2.y * (s0.y - s1.y)) / den;
+  const m22 = (d0.y * (s2.x - s1.x) + d1.y * (s0.x - s2.x) + d2.y * (s1.x - s0.x)) / den;
+  const dx = d0.x - m11 * s0.x - m12 * s0.y, dy = d0.y - m21 * s0.x - m22 * s0.y;
+  const cx = (d0.x + d1.x + d2.x) / 3, cy = (d0.y + d1.y + d2.y) / 3;
+  function gen(pt){ return {x: cx + (pt.x - cx) * 1.04, y: cy + (pt.y - cy) * 1.04}; }
+  const e0 = gen(d0), e1 = gen(d1), e2 = gen(d2);
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(e0.x, e0.y); ctx.lineTo(e1.x, e1.y); ctx.lineTo(e2.x, e2.y); ctx.closePath(); ctx.clip();
+  ctx.setTransform(m11, m21, m12, m22, dx, dy);
+  ctx.drawImage(img, 0, 0);
+  ctx.restore();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+function duzlestir(img, pins, maxOut){
+  function len(p, q){ return Math.hypot(p.x - q.x, p.y - q.y); }
+  let W = (len(pins[0], pins[1]) + len(pins[3], pins[2])) / 2;
+  let H = (len(pins[0], pins[3]) + len(pins[1], pins[2])) / 2;
+  const o = Math.min(1, maxOut / Math.max(W, H));
+  W = Math.max(40, Math.round(W * o)); H = Math.max(40, Math.round(H * o));
+  const K = persKatsayi(pins);
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const ctx = c.getContext("2d");
+  const N = 20;
+  for(let j = 0; j < N; j++) for(let i = 0; i < N; i++){
+    const u0 = i / N, u1 = (i + 1) / N, v0 = j / N, v1 = (j + 1) / N;
+    const sTL = persNokta(K, u0, v0), sTR = persNokta(K, u1, v0);
+    const sBR = persNokta(K, u1, v1), sBL = persNokta(K, u0, v1);
+    const dTL = {x: u0 * W, y: v0 * H}, dTR = {x: u1 * W, y: v0 * H};
+    const dBR = {x: u1 * W, y: v1 * H}, dBL = {x: u0 * W, y: v1 * H};
+    ucgenCiz(ctx, img, sTL, sTR, sBR, dTL, dTR, dBR);
+    ucgenCiz(ctx, img, sTL, sBR, sBL, dTL, dBR, dBL);
+  }
+  return c;
+}
+const FL = {img: null, pins: [], cb: null, olcek: 1, kaynakW: 0, kaynakH: 0, aktifPin: -1, hat: false};
+function flatAc(kaynakUrl, secenek){
+  const img = new Image();
+  img.onload = function(){
+    FL.img = img; FL.cb = secenek.cb; FL.hat = !!secenek.hat;
+    FL.kaynakW = img.naturalWidth; FL.kaynakH = img.naturalHeight;
+    FL.pins = [{x: FL.kaynakW * .08, y: FL.kaynakH * .08}, {x: FL.kaynakW * .92, y: FL.kaynakH * .08},
+               {x: FL.kaynakW * .92, y: FL.kaynakH * .92}, {x: FL.kaynakW * .08, y: FL.kaynakH * .92}];
+    $("fl-baslik").textContent = secenek.baslik || "Düzleştir";
+    $("fl-msg").textContent = ""; $("fl-msg").classList.remove("err");
+    $("fl-ilerleme").textContent = secenek.ilerleme || "";
+    $("fl-hat-btns").classList.toggle("hide", !secenek.hat);
+    $("fl-uygula").disabled = false;
+    if(!$("flatmodal").open) $("flatmodal").showModal();
+    flCiz();
+    requestAnimationFrame(flCiz);   // ilk boyamadan sonra gercek olculerle bir daha
+  };
+  img.onerror = function(){ toast("Fotoğraf açılamadı."); if(FL.hat) hatBitir(true); };
+  img.src = kaynakUrl;
+}
+function flCiz(){
+  const cv = $("fl-cv");
+  const gen = Math.min(640, Math.max(240, window.innerWidth - 90));
+  const yuk = Math.min(Math.max(220, Math.round(window.innerHeight * .5)), 560);
+  const o = Math.min(gen / FL.kaynakW, yuk / FL.kaynakH, 1);
+  FL.olcek = o;
+  cv.width = Math.round(FL.kaynakW * o); cv.height = Math.round(FL.kaynakH * o);
+  const ctx = cv.getContext("2d");
+  ctx.drawImage(FL.img, 0, 0, cv.width, cv.height);
+  ctx.strokeStyle = "rgba(212,175,55,.9)"; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(FL.pins[0].x * o, FL.pins[0].y * o);
+  for(let i = 1; i < 4; i++) ctx.lineTo(FL.pins[i].x * o, FL.pins[i].y * o);
+  ctx.closePath(); ctx.stroke();
+  pinYerlestir();
+}
+function pinYerlestir(){
+  const cv = $("fl-cv");
+  const r = cv.getBoundingClientRect();
+  const ds = r.width / FL.kaynakW;   // max-width:100% küçültmüş olabilir
+  $("fl-alan").querySelectorAll(".flat-pin").forEach(function(el){
+    const p = FL.pins[+el.dataset.p];
+    el.style.left = (cv.offsetLeft + p.x * ds) + "px";
+    el.style.top  = (cv.offsetTop  + p.y * ds) + "px";
+  });
+}
+function lupGuncelle(e){
+  if(FL.aktifPin < 0) return;
+  const lup = $("fl-lup");
+  lup.style.display = "block";
+  const alanR = $("fl-alan").getBoundingClientRect();
+  const r = $("fl-cv").getBoundingClientRect();
+  let lx = e.clientX - alanR.left - 60, ly = e.clientY - alanR.top - 155;
+  if(ly < -8) ly = e.clientY - alanR.top + 45;
+  lup.style.left = Math.max(0, Math.min(lx, alanR.width - 122)) + "px";
+  lup.style.top = ly + "px";
+  const p = FL.pins[FL.aktifPin];
+  const ds = r.width / FL.kaynakW;
+  const yan = 44 / ds;
+  const lctx = $("fl-lupcv").getContext("2d");
+  lctx.fillStyle = "#000"; lctx.fillRect(0, 0, 120, 120);
+  lctx.drawImage(FL.img, p.x - yan / 2, p.y - yan / 2, yan, yan, 0, 0, 120, 120);
+}
+$("fl-alan").querySelectorAll(".flat-pin").forEach(function(el){
+  el.addEventListener("pointerdown", function(e){
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    FL.aktifPin = +el.dataset.p;
+    lupGuncelle(e);
+  });
+  el.addEventListener("pointermove", function(e){
+    if(FL.aktifPin !== +el.dataset.p) return;
+    const r = $("fl-cv").getBoundingClientRect();
+    const x = Math.min(Math.max((e.clientX - r.left) * FL.kaynakW / r.width, 0), FL.kaynakW);
+    const y = Math.min(Math.max((e.clientY - r.top) * FL.kaynakH / r.height, 0), FL.kaynakH);
+    FL.pins[FL.aktifPin] = {x: x, y: y};
+    flCiz(); lupGuncelle(e);
+  });
+  ["pointerup", "pointercancel"].forEach(function(t){
+    el.addEventListener(t, function(){ FL.aktifPin = -1; $("fl-lup").style.display = "none"; });
+  });
+});
+$("fl-uygula").addEventListener("click", function(){
+  const c = duzlestir(FL.img, FL.pins, FL.hat ? 1000 : 2400);
+  const tam = c.toDataURL("image/jpeg", FL.hat ? .8 : .85);
+  const cb = FL.cb;
+  if(!FL.hat) $("flatmodal").close();
+  if(cb) cb(tam);
+});
+function flatKapat(){
+  const hattaydi = FL.hat;
+  FL.hat = false; FL.cb = null;
+  if($("flatmodal").open) $("flatmodal").close();
+  if(hattaydi) hatBitir(false);
+}
+$("fl-vazgec").addEventListener("click", flatKapat);
+$("fl-close").addEventListener("click", flatKapat);
+window.addEventListener("resize", function(){ if($("flatmodal").open && FL.img) flCiz(); });
+
+/* ---- düzleştirme hattı: eser eser, kare kare (yalnız Mert) ---- */
+let HAT = null;
+function hatBaslat(){
+  if(!ghTok()){ $("tk-msg").textContent = ""; $("tk-in").value = ""; $("tokenmodal").showModal(); return; }
+  let son = 0;
+  try{ son = parseInt(localStorage.getItem("tml_flat_son") || "0", 10) || 0; }catch(e){}
+  const cevap = prompt("Hangi arşiv numarasından başlansın? (boş bırak = " + (son + 1) + ")", "");
+  if(cevap === null) return;
+  const bas = parseInt(cevap, 10) || (son + 1);
+  const kuyruk = Object.keys(FOTO).map(Number)
+    .filter(function(n){ return FOTO[n] && FOTO[n][0] >= 1 && n >= bas; })
+    .sort(function(a, b){ return a - b; });
+  if(!kuyruk.length){ toast("№ " + bas + " ve sonrasında fotoğraflı eser yok."); return; }
+  HAT = {kuyruk: kuyruk, ei: 0, kare: 1};
+  hatKareAc();
+}
+function hatKareAc(){
+  if(!HAT || HAT.ei >= HAT.kuyruk.length){ hatBitir(true); return; }
+  const no = HAT.kuyruk[HAT.ei];
+  const adet = FOTO[no] ? FOTO[no][0] : 0;
+  if(HAT.kare > adet){ hatEserBitti(); return; }
+  flatAc("f/" + no + "-" + HAT.kare + ".jpg?s=" + Date.now(), {
+    baslik: "№ " + no + " — kare " + HAT.kare + "/" + adet,
+    ilerleme: (HAT.ei + 1) + " / " + HAT.kuyruk.length + " eser",
+    hat: true,
+    cb: async function(tam){
+      const msg = $("fl-msg"); msg.classList.remove("err");
+      $("fl-uygula").disabled = true;
+      try{
+        msg.textContent = "Yükleniyor…";
+        await ghDosyaYaz("f/" + no + "-" + HAT.kare + ".jpg", tam.split(",")[1], "Duzlestirme: " + no + "-" + HAT.kare);
+        if(HAT.kare === 1){
+          const kucuk = await dataUrlKucult(tam, 220, .58);
+          await ghDosyaYaz("k/" + no + ".jpg", kucuk.split(",")[1], "Kucuk: " + no);
+        }
+        msg.textContent = "";
+        HAT.kare++;
+        hatKareAc();
+      }catch(err){
+        msg.textContent = "⛔ " + err.message + " — ✂ Düzleştir ile tekrar dene.";
+        msg.classList.add("err");
+        $("fl-uygula").disabled = false;
+      }
+    }
+  });
+}
+function hatEserBitti(){
+  try{ localStorage.setItem("tml_flat_son", String(HAT.kuyruk[HAT.ei])); }catch(e){}
+  HAT.ei++; HAT.kare = 1;
+  hatKareAc();
+}
+$("fl-kare-atla").addEventListener("click", function(){ if(!HAT) return; HAT.kare++; hatKareAc(); });
+$("fl-eser-atla").addEventListener("click", function(){ if(!HAT) return; hatEserBitti(); });
+$("fl-bitir").addEventListener("click", function(){ hatBitir(true); });
+function hatBitir(kapat){
+  if(HAT && HAT.ei < HAT.kuyruk.length){
+    try{ localStorage.setItem("tml_flat_son", String(HAT.kuyruk[HAT.ei] - 1)); }catch(e){}
+  }
+  const vardi = !!HAT;
+  HAT = null; FL.hat = false;
+  if(kapat && $("flatmodal").open) $("flatmodal").close();
+  if(vardi) toast("Düzleştirme hattı durdu — kaldığın yerden devam edebilirsin.");
+}
+
 /* ---- yayindaki fotograflarin sirasi (yalniz Mert) ---- */
-let fsNo = null, fsSira = [];
+let fsNo = null, fsSira = [], fsEdit = {};
 function blobDataUrl(blob){
   return new Promise(function(res, rej){
     const fr = new FileReader();
@@ -2153,16 +2442,23 @@ function blobDataUrl(blob){
 }
 function fsCiz(){
   $("fs-liste").innerHTML = fsSira.map(function(idx, i){
-    return '<div class="foto-mini' + (i === 0 ? ' kapak' : '') + '"><img src="f/' + fsNo + '-' + idx + '.jpg" alt="">' +
-           '<span class="sira">' + (i === 0 ? 'KAPAK' : (i + 1)) + '</span>' +
+    const kaynak = fsEdit[idx] || ("f/" + fsNo + "-" + idx + ".jpg");
+    return '<div class="foto-mini' + (i === 0 ? ' kapak' : '') + '" data-idx="' + idx + '"><img src="' + kaynak + '" alt="">' +
+           '<span class="sira">' + (i === 0 ? 'KAPAK' : (i + 1)) + (fsEdit[idx] ? ' ✂' : '') + '</span>' +
+           '<button type="button" class="kes" data-i="' + i + '" aria-label="Düzleştir">✂</button>' +
            (i > 0 ? '<button type="button" class="one" data-i="' + i + '" aria-label="Öne taşı">◀</button>' : '') + '</div>';
   }).join("");
+}
+function fsBuyukGoster(idx){
+  const kutu = $("fs-buyuk");
+  kutu.classList.add("acik");
+  kutu.querySelector("img").src = fsEdit[idx] || ("f/" + fsNo + "-" + idx + ".jpg");
 }
 function fotoSiraAc(no){
   const f = FOTO[no];
   const adet = f ? f[0] : 0;
   if(adet < 2) return;
-  fsNo = no; fsSira = [];
+  fsNo = no; fsSira = []; fsEdit = {}; $("fs-buyuk").classList.remove("acik");
   for(let i = 1; i <= adet; i++) fsSira.push(i);
   $("fs-baslik").textContent = "№ " + no + " — fotoğraf sırası";
   $("fs-msg").textContent = ""; $("fs-msg").classList.remove("err");
@@ -2170,48 +2466,76 @@ function fotoSiraAc(no){
   $("fotosiramodal").showModal();
 }
 $("fs-liste").addEventListener("click", function(e){
-  const o = e.target.closest(".one"); if(!o) return;
-  const i = +o.dataset.i;
-  const t = fsSira[i]; fsSira[i] = fsSira[i - 1]; fsSira[i - 1] = t;
-  fsCiz();
+  const k = e.target.closest(".kes");
+  if(k){
+    const i = +k.dataset.i, idx = fsSira[i];
+    const kaynak = fsEdit[idx] || ("f/" + fsNo + "-" + idx + ".jpg?s=" + Date.now());
+    flatAc(kaynak, {baslik: "№ " + fsNo + " — kare " + (i + 1), cb: function(tam){
+      fsEdit[idx] = tam; fsCiz(); fsBuyukGoster(idx);
+    }});
+    return;
+  }
+  const o = e.target.closest(".one");
+  if(o){
+    const i = +o.dataset.i;
+    const t = fsSira[i]; fsSira[i] = fsSira[i - 1]; fsSira[i - 1] = t;
+    fsCiz();
+    return;
+  }
+  const kart = e.target.closest(".foto-mini");
+  if(kart) fsBuyukGoster(+kart.dataset.idx);
+});
+$("fs-liste").addEventListener("mouseover", function(e){
+  if(!window.matchMedia("(hover:hover)").matches) return;
+  const kart = e.target.closest(".foto-mini");
+  if(kart) fsBuyukGoster(+kart.dataset.idx);
 });
 $("fs-close").addEventListener("click", function(){ $("fotosiramodal").close(); });
 $("fs-vazgec").addEventListener("click", function(){ $("fotosiramodal").close(); });
 $("fs-yayinla").addEventListener("click", async function(){
   if(!ghTok()){ $("tk-msg").textContent = ""; $("tk-in").value = ""; $("tokenmodal").showModal(); return; }
-  let degisti = false;
+  let degisti = Object.keys(fsEdit).length > 0;
   for(let i = 0; i < fsSira.length; i++) if(fsSira[i] !== i + 1) degisti = true;
   if(!degisti){ $("fotosiramodal").close(); return; }
   const btn = $("fs-yayinla"), msg = $("fs-msg");
   btn.disabled = true; $("fs-vazgec").disabled = true; msg.classList.remove("err");
   try{
-    msg.textContent = "Fotoğraflar indiriliyor…";
-    const bloblar = [];
+    msg.textContent = "Fotoğraflar hazırlanıyor…";
+    const icerikler = [];   // hedef pozisyona göre b64; null = dokunulmayacak
     for(let i = 0; i < fsSira.length; i++){
-      const r = await fetch("f/" + fsNo + "-" + fsSira[i] + ".jpg?s=" + Date.now(), {cache: "no-store"});
-      if(!r.ok) throw new Error(fsNo + "-" + fsSira[i] + ".jpg indirilemedi (" + r.status + ")");
-      bloblar.push(await r.blob());
+      const idx = fsSira[i];
+      if(fsEdit[idx]) icerikler.push(fsEdit[idx].split(",")[1]);
+      else if(idx === i + 1) icerikler.push(null);
+      else {
+        const r = await fetch("f/" + fsNo + "-" + idx + ".jpg?s=" + Date.now(), {cache: "no-store"});
+        if(!r.ok) throw new Error(fsNo + "-" + idx + ".jpg indirilemedi (" + r.status + ")");
+        icerikler.push((await blobDataUrl(await r.blob())).split(",")[1]);
+      }
     }
-    for(let i = 0; i < bloblar.length; i++){
-      if(fsSira[i] === i + 1) continue;
-      msg.textContent = "Yükleniyor: " + (i + 1) + " / " + bloblar.length;
-      const d = await blobDataUrl(bloblar[i]);
-      await ghDosyaYaz("f/" + fsNo + "-" + (i + 1) + ".jpg", d.split(",")[1], "Foto sira: " + fsNo + "-" + (i + 1));
+    let n = 0;
+    for(let i = 0; i < icerikler.length; i++) if(icerikler[i] !== null) n++;
+    let y = 0;
+    for(let i = 0; i < icerikler.length; i++){
+      if(icerikler[i] === null) continue;
+      y++;
+      msg.textContent = "Yükleniyor: " + y + " / " + n;
+      await ghDosyaYaz("f/" + fsNo + "-" + (i + 1) + ".jpg", icerikler[i], "Foto: " + fsNo + "-" + (i + 1));
     }
-    if(fsSira[0] !== 1){
+    if(icerikler[0] !== null){
       msg.textContent = "Kapak küçüğü hazırlanıyor…";
-      const kucuk = await dataUrlKucult(await blobDataUrl(bloblar[0]), 220, .58);
+      const kucuk = await dataUrlKucult("data:image/jpeg;base64," + icerikler[0], 220, .58);
       await ghDosyaYaz("k/" + fsNo + ".jpg", kucuk.split(",")[1], "Kucuk: " + fsNo);
     }
     try{
       const u = await ghJsonAl();
-      u.veri.gecmis_log = (u.veri.gecmis_log || []).concat([{t: new Date().toISOString(), kim: benKim || "?", no: fsNo, tur: "foto_sira", fark: {foto_sirasi: ["eski sıra", fsSira.join(",")]}}]);
+      const ek = Object.keys(fsEdit).length ? (" · " + Object.keys(fsEdit).length + " kare düzleştirildi") : "";
+      u.veri.gecmis_log = (u.veri.gecmis_log || []).concat([{t: new Date().toISOString(), kim: benKim || "?", no: fsNo, tur: "foto_sira", fark: {foto: ["eski", fsSira.join(",") + ek]}}]);
       u.veri.son = {t: new Date().toISOString(), kim: benKim || "?"};
-      await ghDosyaYaz("data/degisiklikler.json", b64utf8(JSON.stringify(u.veri)), "Foto sirasi (" + (benKim || "?") + "): " + fsNo, u.sha);
-    }catch(e2){ /* sira degisti; log yazilamadiysa sessiz gec */ }
+      await ghDosyaYaz("data/degisiklikler.json", b64utf8(JSON.stringify(u.veri)), "Fotolar (" + (benKim || "?") + "): " + fsNo, u.sha);
+    }catch(e2){ /* fotolar yazildi; log yazilamadiysa sessiz gec */ }
     msg.textContent = "";
     $("fotosiramodal").close();
-    toast("№ " + fsNo + " fotoğraf sırası yayınlandı — telefonda görünmesi birkaç dakika alabilir.");
+    toast("№ " + fsNo + " fotoğrafları yayınlandı — telefonda görünmesi birkaç dakika alabilir.");
   }catch(e){
     msg.textContent = "⛔ " + e.message + " — bağlantıyı kontrol edip tekrar dene.";
     msg.classList.add("err");
@@ -2241,6 +2565,7 @@ function panelUygula(){
   $("btn-disa").classList.toggle("hide", !admin);
   $("btn-gecmis").classList.toggle("hide", !admin);
   $("btn-yonetim").classList.toggle("hide", !(admin && benKim === "Mert"));
+  $("btn-flathat").classList.toggle("hide", !(admin && benKim === "Mert"));
   $("f-mecra").classList.toggle("hide", !admin);
   if(!admin && state.mecra){ state.mecra = ""; $("f-mecra").value = ""; }
   $("f-eksik").classList.toggle("hide", !admin);
