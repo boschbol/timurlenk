@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Timurlenk Envanteri</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style id="css">
 @font-face {
   font-family: 'Fraunces';
@@ -233,8 +235,9 @@ dialog::backdrop{background:rgba(20,18,14,.55);backdrop-filter:blur(3px)}
 @media(max-width:660px){.modal-body{overflow-y:visible}}
 .modal-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:4px}
 .modal-no{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--gold);font-size:13px}
-.modal-close{margin-left:auto;color:var(--ink-2);border:1px solid var(--line-2);border-radius:8px;width:30px;height:30px;line-height:1;flex:none}
-.modal-close:hover{color:var(--ink)}
+.modal-close{margin-left:auto;color:var(--gold);border:1.5px solid var(--gold);border-radius:50%;
+  width:44px;height:44px;line-height:1;flex:none;font-size:20px;background:transparent}
+.modal-close:hover,.modal-close:active{color:var(--ink);border-color:var(--ink)}
 .modal-artist{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:22px;line-height:1.2;text-wrap:balance;margin-bottom:2px}
 .modal-sub{color:var(--ink-2);font-size:13.5px;margin-bottom:12px}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
@@ -307,17 +310,20 @@ dd .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
 .fs-buyuk img{max-width:100%;max-height:40vh;border-radius:10px;border:1px solid var(--line)}
 .flat-alan{position:relative;margin-top:10px;touch-action:none;user-select:none;-webkit-user-select:none}
 .flat-alan canvas{display:block;max-width:100%;border-radius:10px;border:1px solid var(--line)}
-.flat-pin{position:absolute;width:32px;height:32px;margin:-16px 0 0 -16px;border-radius:50%;
-  border:2.5px solid var(--gold);background:rgba(20,18,14,.35);color:#fff;font-size:11px;font-weight:700;
+.flat-pin{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;
+  border:3px solid #00e0ff;box-shadow:0 0 0 2px rgba(255,255,255,.95),0 2px 8px rgba(0,0,0,.55);
+  background:rgba(8,10,12,.5);color:#fff;font-size:12px;font-weight:700;
   display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;z-index:3}
-.flat-lup{position:absolute;width:120px;height:120px;border-radius:50%;overflow:hidden;border:2px solid var(--gold);
-  pointer-events:none;display:none;background:#000;z-index:5}
+.flat-lup{position:absolute;width:120px;height:120px;border-radius:50%;overflow:hidden;border:3px solid #00e0ff;
+  box-shadow:0 0 0 2px rgba(255,255,255,.95);pointer-events:none;display:none;background:#000;z-index:5}
 .flat-lup::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;
-  border:1.5px solid var(--gold);border-radius:50%}
+  border:1.5px solid #00e0ff;border-radius:50%}
 .flat-ilerleme{font-size:12.5px;color:var(--ink-2);letter-spacing:.04em}
 .gelismis-blok{grid-column:1/-1;border:1px dashed var(--line-2);border-radius:10px;padding:8px 12px 12px}
-.gelismis-blok summary{cursor:pointer;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding:4px 0}
-.gelismis-blok[open] summary{color:var(--gold)}
+.gelismis-baslik{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding:4px 0 6px}
+.gelismis-blok .field label{color:var(--ink-2);font-weight:400}
+.gelismis-blok input,.gelismis-blok textarea,.gelismis-blok select{opacity:.88}
+#e-alanlar > .field > label{font-weight:700;color:var(--ink);letter-spacing:.04em}
 .form-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
   position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line);
   margin-top:18px;padding:12px 0 4px}
@@ -1294,8 +1300,8 @@ function buildForm(){
       if(f2.g !== g2){ g2 = f2.g; gh += '<div class="fgrup">' + (GRUP_SIMGE[g2] || "") + " " + g2 + "</div>"; }
       gh += fieldHtml(f2);
     }
-    h += '<details class="gelismis-blok"><summary>⚙ Gelişmiş bilgiler (' + gelismisler.length + ' alan)</summary>' +
-         '<div class="fgrid" style="margin-top:4px">' + gh + "</div></details>";
+    h += '<div class="gelismis-blok"><div class="gelismis-baslik">⚙ Gelişmiş bilgiler</div>' +
+         '<div class="fgrid" style="margin-top:4px">' + gh + "</div></div>";
   }
   $("e-alanlar").innerHTML = h;
 }
@@ -1537,7 +1543,7 @@ $("editform").addEventListener("submit", function(e){
   p.then(function(){
     rerender(true);
     $("editmodal").close();
-    if($("modal").open){ const g = ALL.filter(function(x){ return x.no === no; })[0]; if(g) openModal(g); }
+    if($("modal").open) $("modal").close();   // kayittan sonra dogrudan galeriye don
     toast(yeni ? "№ " + no + " eklendi ✓" : "№ " + no + " güncellendi ✓");
   });
 });
@@ -1996,23 +2002,44 @@ function onayOnizlemeAc(){
     const n2 = bekTek[no];
     const fs = fotoTekil(NEW.filter(function(x){ return String(x.no) === no; })
                  .reduce(function(acc, x){ return acc.concat(x.fotolar || []); }, [])).length;
-    satirlar.push({tip:"new", no:no, baslik:"№ " + no + " — YENİ ESER",
-      detay:(n2.sanatci || n2.aciklama || n2.teknik || "") + (fs ? " · " + fs + " foto" : "")});
+    const parca = [];
+    ["sanatci", "sanatci_tahmini", "cins", "teknik", "olcu", "durum", "konum", "koleksiyon", "aciklama"].forEach(function(k){
+      if(n2[k]) parca.push('<div>' + esc(ALAN_AD[k] || k) + ': <span class="yeni">' + esc(String(n2[k])) + '</span></div>');
+    });
+    if(fs) parca.push('<div><span class="yeni">' + fs + ' fotoğraf</span></div>');
+    satirlar.push({tip:"new", no:no, baslik:"№ " + no + " — YENİ ESER", detay:"", fark: parca.join("")});
   });
   Object.keys(OV).sort(function(a,b){ return a-b; }).forEach(function(no){
+    // bekleyen log kayitlarindan alan alan "ilk eski -> son yeni" birlestir
+    const birlesik = {};
+    LOG.forEach(function(g){
+      if(String(g.no) !== String(no) || g.tur !== "duzenleme" || !g.fark) return;
+      for(const k in g.fark){
+        if(!birlesik[k]) birlesik[k] = [g.fark[k][0], g.fark[k][1]];
+        else birlesik[k][1] = g.fark[k][1];
+      }
+    });
+    const satirF = [];
+    for(const k in birlesik){
+      if(String(birlesik[k][0]) === String(birlesik[k][1])) continue;
+      satirF.push('<div>' + esc(ALAN_AD[k] || k) + ': <span class="eski">' + (esc(String(birlesik[k][0])) || "—") +
+                  '</span> → <span class="yeni">' + (esc(String(birlesik[k][1])) || "—") + '</span></div>');
+    }
+    const ekF = (OV[no]._ekFotoK || []).length;
+    if(ekF) satirF.push('<div><span class="yeni">+' + ekF + ' fotoğraf</span></div>');
     const alanlar = Object.keys(OV[no]).filter(function(k){
       return k.charAt(0) !== "_" && ["guncelleme","olcu_a","olcu_b"].indexOf(k) < 0;
     }).map(function(k){ return ALAN_AD[k] || k; });
-    const ekF = (OV[no]._ekFotoK || []).length;
     satirlar.push({tip:"ov", no:no, baslik:"№ " + no + " — düzenleme",
-      detay: alanlar.join(", ") + (ekF ? (alanlar.length ? " · " : "") + "+" + ekF + " foto" : "")});
+      detay: satirF.length ? "" : alanlar.join(", "), fark: satirF.join("")});
   });
   $("onay-liste").innerHTML = satirlar.map(function(r, i){
     return '<div class="on-satir" data-tip="' + r.tip + '" data-no="' + r.no + '">' +
       '<input type="checkbox" checked aria-label="Dahil et">' +
       '<div class="on-govde"><div class="on-baslik">' + esc(r.baslik) + '</div>' +
-      '<div class="on-detay">' + esc(r.detay) + '</div></div>' +
-      '<button type="button" class="on-sil" title="Bu değişikliği tamamen sil">🗑</button></div>';
+      (r.detay ? '<div class="on-detay">' + esc(r.detay) + '</div>' : '') +
+      (r.fark ? '<div class="gm-fark">' + r.fark + '</div>' : '') +
+      '</div><button type="button" class="on-sil" title="Bu değişikliği tamamen sil">🗑</button></div>';
   }).join("");
   onaySayaciniGuncelle();
   $("onaymodal").showModal();
@@ -2049,6 +2076,10 @@ $("om-yayinla").addEventListener("click", function(){
 $("om-close").addEventListener("click", function(){ $("onaymodal").close(); });
 $("om-vazgec").addEventListener("click", function(){ $("onaymodal").close(); });
 $("btn-onay").addEventListener("click", onayOnizlemeAc);
+// goruntuleme pencereleri: karartilmis bosluga dokununca kapanir (form pencereleri haric)
+["modal", "sanatcimodal", "gecmismodal"].forEach(function(id){
+  $(id).addEventListener("click", function(e){ if(e.target === $(id)) $(id).close(); });
+});
 function gecmisGoster(){
   const hepsi = [];
   for(let i = 0; i < LOG.length; i++) hepsi.push(Object.assign({_bek: true}, LOG[i]));
@@ -2296,11 +2327,12 @@ function flCiz(){
   cv.width = Math.round(FL.kaynakW * o); cv.height = Math.round(FL.kaynakH * o);
   const ctx = cv.getContext("2d");
   ctx.drawImage(FL.img, 0, 0, cv.width, cv.height);
-  ctx.strokeStyle = "rgba(212,175,55,.9)"; ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(FL.pins[0].x * o, FL.pins[0].y * o);
   for(let i = 1; i < 4; i++) ctx.lineTo(FL.pins[i].x * o, FL.pins[i].y * o);
-  ctx.closePath(); ctx.stroke();
+  ctx.closePath();
+  ctx.strokeStyle = "rgba(255,255,255,.95)"; ctx.lineWidth = 4; ctx.stroke();
+  ctx.strokeStyle = "#00e0ff"; ctx.lineWidth = 1.75; ctx.stroke();
   pinYerlestir();
 }
 function pinYerlestir(){
