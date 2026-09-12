@@ -408,13 +408,24 @@ label[for="e-tahmini_sanatci"]{font-style:italic}
 .mu-no{display:inline-block;border:1px solid var(--line-2);border-radius:7px;padding:1px 7px;margin:2px 4px 0 0;font-size:12px;cursor:pointer}
 .mu-no:hover{border-color:var(--gold);color:var(--gold)}
 .mu-baslik2{margin-top:14px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
-.cv-satir{display:flex;gap:8px;align-items:center;padding:3px 0}
-.cv-tr{flex:0 0 44%;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cv-en{flex:1;background:var(--bg);border:1px solid var(--line-2);border-radius:8px;padding:6px 9px;font-size:12.5px;outline:none;min-width:0}
-.cv-en:focus{border-color:var(--gold)}
-.cv-en::placeholder{color:var(--ink-3);font-style:italic}
-.cv-al{width:30px;height:30px;border-radius:8px;border:1px solid var(--line-2);color:var(--gold);flex:none}
-.cv-al-bos{width:30px;flex:none}
+#cevirimodal{width:min(640px,calc(100vw - 20px))}
+.cv-liste{margin-top:10px;max-height:56vh;overflow:auto;display:flex;flex-direction:column;gap:9px;padding-right:4px}
+.cv-kart{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px 12px}
+.cv-ust{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:7px}
+.cv-deger{font-weight:600;font-size:14px}
+.cv-adet{font-size:11.5px;color:var(--ink-3)}
+.cv-rozet{margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:.06em;border-radius:6px;padding:2px 8px}
+.cv-rozet.ok{background:var(--ok-soft);color:var(--ok)}
+.cv-rozet.degisti{background:var(--gold-soft);color:var(--gold)}
+.cv-rozet.oneri{background:var(--warn-soft);color:var(--warn)}
+.cv-rozet.eksik{background:var(--sold-soft);color:var(--sold)}
+.cv-giris{width:100%;background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:9px 12px;font-size:14px;outline:none}
+.cv-giris:focus{border-color:var(--gold)}
+.cv-onerisatir{margin-top:7px;font-size:12.5px;color:var(--ink-2);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cv-onerisatir b{color:var(--ink)}
+.cv-kullan{border:1px solid var(--gold);color:var(--gold);border-radius:8px;padding:3px 12px;font-size:12px}
+.cv-kullan:hover{background:var(--gold-soft)}
+.cv-alt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
 #btn-dil{border:1px solid var(--line-2);border-radius:9px;padding:5px 10px;font-size:12px;letter-spacing:.06em;color:var(--ink-2);margin-right:8px}
 #btn-dil:hover{color:var(--gold);border-color:var(--gold)}
 /* ---- karusel zoom ---- */
@@ -719,15 +730,11 @@ label[for="e-tahmini_sanatci"]{font-style:italic}
       </select>
       <button type="button" class="btn-line" id="ym-sanatcilar">Sanatçılar dizinini aç</button>
 
-    <div class="fgrup" style="margin-top:18px">🌐 İngilizce çeviriler</div>
+    <div class="fgrup" style="margin-top:18px">🌐 İngilizce</div>
     <p style="color:var(--ink-2);font-size:12.5px;margin-top:6px">
-      Cins ve teknik değerlerinin İngilizcesi. Soluk yazılar makine önerisidir — kutuya dokunup onayla ya da düzelt;
-      yalnız DOLU kutular sitede kullanılır. "EN" düğmesi sayfanın sağ üstündedir.</p>
-    <div id="ym-ceviri"></div>
-    <div class="form-actions" style="margin-top:8px">
-      <button type="button" class="btn-gold" id="ym-ceviri-kaydet">Çevirileri yayınla</button>
-      <span class="form-msg" id="ym-ceviri-msg"></span>
-    </div>
+      Teknik ve cins adlarının İngilizceleri ayrı pencerede yönetilir. Sitenin sağ üstündeki
+      <b>EN</b> düğmesi yalnız senin onayladıklarını kullanır.</p>
+    <button type="button" class="btn-line" id="ym-ceviri-ac">🌐 İngilizce çevirileri yönet</button>
     </div>
     <div class="sn-liste" id="ym-kat-liste" style="max-height:34vh;max-height:34dvh"></div>
   </div>
@@ -756,6 +763,31 @@ label[for="e-tahmini_sanatci"]{font-style:italic}
     </div>
     <div class="gc-kisiler" id="gc-kisiler"></div>
     <div class="gecmis-liste" id="gecmis-liste"></div>
+  </div>
+</dialog>
+
+<dialog id="cevirimodal">
+  <div class="form-wrap">
+    <div class="modal-top">
+      <h2 style="margin-bottom:0">İngilizce çeviriler</h2>
+      <button type="button" class="modal-close" id="cv-close" aria-label="Kapat">✕</button>
+    </div>
+    <p class="fs-not">Bir değerin İngilizcesini kutusuna yaz ya da hazır öneride <b>Kullan</b>'a bas.
+      Sitede yalnız yayınladıkların kullanılır; boş bırakılan Türkçe kalır.</p>
+    <input class="sn-ara" id="cv-ara" type="search" placeholder="Değer ara… (örn. tuval)" autocomplete="off">
+    <div class="km-sec" style="margin-top:8px">
+      <button type="button" id="cv-f-tumu" aria-pressed="true">Tümü</button>
+      <button type="button" id="cv-f-teknik" aria-pressed="false">Teknik</button>
+      <button type="button" id="cv-f-cins" aria-pressed="false">Cins</button>
+      <button type="button" id="cv-f-eksik" aria-pressed="false">Çevrilmemişler</button>
+      <span class="km-not" id="cv-ilerleme"></span>
+    </div>
+    <div class="cv-liste" id="cv-liste"></div>
+    <div class="cv-alt">
+      <button type="button" class="btn-line" id="cv-toplu">Boşları önerilerle doldur</button>
+      <button type="button" class="btn-gold" id="cv-yayinla">Yayınla</button>
+      <span class="form-msg" id="cv-msg"></span>
+    </div>
   </div>
 </dialog>
 
@@ -2689,42 +2721,123 @@ $("ym-kat-liste").addEventListener("click", function(e){
   kutu.querySelectorAll("button")[1].addEventListener("click", kategoriListele);
   inp.addEventListener("keydown", function(e2){ if(e2.key === "Enter"){ e2.preventDefault(); kaydet(); } else if(e2.key === "Escape") kategoriListele(); });
 });
-$("btn-yonetim").addEventListener("click", function(){ yonetimAc(); ceviriListele(); });
+$("btn-yonetim").addEventListener("click", yonetimAc);
 $("btn-flathat").addEventListener("click", function(){ hatBaslat(); });
 $("ym-close").addEventListener("click", function(){ $("yonetimmodal").close(); });
 $("ym-kaydet").addEventListener("click", alanDuzeniYayinla);
 $("ym-alan-sec").addEventListener("change", kategoriListele);
-function ceviriListele(){
-  const say = {};
+/* ---- İngilizce çeviri penceresi ---- */
+let cvTaslak = {}, cvSuzgec = "tumu";
+function cvDegerler(){
+  const say = {}, tur = {};
   ALL.forEach(function(r){
-    ["teknik", "cins"].forEach(function(k){
-      const v = String(r[k] || "").trim();
-      if(v) say[v] = (say[v] || 0) + 1;
+    [["teknik", "Teknik"], ["cins", "Cins"]].forEach(function(cift){
+      const v = String(r[cift[0]] || "").trim();
+      if(!v) return;
+      say[v] = (say[v] || 0) + 1;
+      tur[v] = cift[1];
     });
   });
-  const degerler = Object.keys(say).sort(function(a, b){ return say[b] - say[a]; });
-  $("ym-ceviri").innerHTML = degerler.map(function(v){
-    const onayli = CEVIRI[v] || "";
-    const oneri = CEV_ONERI[v] || "";
-    return '<div class="cv-satir"><span class="cv-tr" title="' + say[v] + ' eser">' + esc(v) + '</span>' +
-      '<input class="cv-en" data-deger="' + esc(v) + '" value="' + esc(onayli) + '" placeholder="' + esc(oneri || "—") + '">' +
-      (oneri && !onayli ? '<button type="button" class="cv-al" title="Öneriyi kullan">↵</button>' : '<span class="cv-al-bos"></span>') + '</div>';
-  }).join("");
+  return Object.keys(say).sort(function(a, b){ return say[b] - say[a]; })
+    .map(function(v){ return {v: v, adet: say[v], tur: tur[v]}; });
 }
-$("ym-ceviri").addEventListener("click", function(e){
-  const b = e.target.closest(".cv-al");
-  if(!b) return;
-  const inp = b.parentElement.querySelector(".cv-en");
-  inp.value = inp.placeholder === "—" ? "" : inp.placeholder;
-});
-$("ym-ceviri-kaydet").addEventListener("click", async function(){
-  if(!ghTok()){ $("tokenmodal").showModal(); return; }
-  const yeni = {};
-  $("ym-ceviri").querySelectorAll(".cv-en").forEach(function(inp){
-    const v = inp.value.trim();
-    if(v) yeni[inp.getAttribute("data-deger")] = v;
+function cvDurum(v){
+  const deger = (cvTaslak[v] || "").trim();
+  if(deger) return CEVIRI[v] === deger ? "onayli" : "yeni";
+  return CEV_ONERI[v] ? "oneri" : "eksik";
+}
+function cvSayac(){
+  const hepsi = cvDegerler();
+  let dolu = 0;
+  hepsi.forEach(function(d){ if((cvTaslak[d.v] || "").trim()) dolu++; });
+  $("cv-ilerleme").textContent = dolu + " / " + hepsi.length + " çevrildi";
+  let fark = 0;
+  hepsi.forEach(function(d){
+    const t = (cvTaslak[d.v] || "").trim(), o = (CEVIRI[d.v] || "").trim();
+    if(t !== o) fark++;
   });
-  const btn = this, msg = $("ym-ceviri-msg");
+  $("cv-yayinla").textContent = fark ? ("Yayınla (" + fark + " değişiklik)") : "Yayınla";
+  $("cv-yayinla").disabled = !fark;
+}
+function cvCiz(){
+  const q = ($("cv-ara").value || "").toLocaleLowerCase("tr").trim();
+  const parcalar = [];
+  cvDegerler().forEach(function(d){
+    const durum = cvDurum(d.v);
+    if(cvSuzgec === "teknik" && d.tur !== "Teknik") return;
+    if(cvSuzgec === "cins" && d.tur !== "Cins") return;
+    if(cvSuzgec === "eksik" && (cvTaslak[d.v] || "").trim()) return;
+    if(q && d.v.toLocaleLowerCase("tr").indexOf(q) < 0 &&
+       String(cvTaslak[d.v] || "").toLocaleLowerCase("tr").indexOf(q) < 0) return;
+    const oneri = CEV_ONERI[d.v] || "";
+    const deger = cvTaslak[d.v] || "";
+    const rozet = durum === "onayli" ? '<span class="cv-rozet ok">✓ Yayında</span>'
+                : durum === "yeni"   ? '<span class="cv-rozet degisti">Yayınlanacak</span>'
+                : durum === "oneri"  ? '<span class="cv-rozet oneri">Öneri hazır</span>'
+                :                      '<span class="cv-rozet eksik">Eksik</span>';
+    parcalar.push('<div class="cv-kart" data-deger="' + esc(d.v) + '">' +
+      '<div class="cv-ust"><span class="cv-deger">' + esc(d.v) + '</span>' +
+      '<span class="cv-adet">' + d.tur + " · " + d.adet + ' eser</span>' + rozet + '</div>' +
+      '<input class="cv-giris" value="' + esc(deger) + '" placeholder="İngilizcesini buraya yaz…" autocomplete="off">' +
+      (oneri && oneri !== deger.trim()
+        ? '<div class="cv-onerisatir">Öneri: <b>' + esc(oneri) + '</b><button type="button" class="cv-kullan">Kullan</button></div>'
+        : "") +
+      '</div>');
+  });
+  $("cv-liste").innerHTML = parcalar.join("") || '<div class="mu-alt" style="padding:8px 2px">Bu süzgeçte değer yok.</div>';
+  cvSayac();
+}
+function ceviriPenceresiAc(){
+  cvTaslak = {};
+  for(const k in CEVIRI) cvTaslak[k] = CEVIRI[k];
+  cvSuzgec = "tumu";
+  $("cv-ara").value = "";
+  ["tumu", "teknik", "cins", "eksik"].forEach(function(f){
+    $("cv-f-" + f).setAttribute("aria-pressed", f === "tumu");
+  });
+  cvCiz();
+  $("cevirimodal").showModal();
+}
+$("ym-ceviri-ac").addEventListener("click", function(){ $("yonetimmodal").close(); ceviriPenceresiAc(); });
+["tumu", "teknik", "cins", "eksik"].forEach(function(f){
+  $("cv-f-" + f).addEventListener("click", function(){
+    cvSuzgec = f;
+    ["tumu", "teknik", "cins", "eksik"].forEach(function(g){ $("cv-f-" + g).setAttribute("aria-pressed", g === f); });
+    cvCiz();
+  });
+});
+$("cv-ara").addEventListener("input", cvCiz);
+$("cv-liste").addEventListener("input", function(e){
+  const inp = e.target.closest(".cv-giris");
+  if(!inp) return;
+  const kart = inp.closest(".cv-kart");
+  cvTaslak[kart.getAttribute("data-deger")] = inp.value;
+  cvSayac();
+});
+$("cv-liste").addEventListener("change", function(e){
+  if(e.target.closest(".cv-giris")) cvCiz();   // odak cikinca rozet/oneri satirini tazele
+});
+$("cv-liste").addEventListener("click", function(e){
+  const b = e.target.closest(".cv-kullan");
+  if(!b) return;
+  const kart = b.closest(".cv-kart");
+  const v = kart.getAttribute("data-deger");
+  cvTaslak[v] = CEV_ONERI[v] || "";
+  cvCiz();
+});
+$("cv-toplu").addEventListener("click", function(){
+  let n = 0;
+  cvDegerler().forEach(function(d){
+    if(!(cvTaslak[d.v] || "").trim() && CEV_ONERI[d.v]){ cvTaslak[d.v] = CEV_ONERI[d.v]; n++; }
+  });
+  cvCiz();
+  toast(n ? n + " öneri dolduruldu — kontrol et, sonra Yayınla." : "Doldurulacak boş öneri kalmadı.");
+});
+$("cv-yayinla").addEventListener("click", async function(){
+  if(!ghTok()){ $("tk-msg").textContent = ""; $("tk-in").value = ""; $("tokenmodal").showModal(); return; }
+  const yeni = {};
+  for(const k in cvTaslak){ const v = String(cvTaslak[k]).trim(); if(v) yeni[k] = v; }
+  const btn = this, msg = $("cv-msg");
   btn.disabled = true; msg.classList.remove("err"); msg.textContent = "Yayınlanıyor…";
   try{
     const u = await ghJsonAl();
@@ -2733,14 +2846,16 @@ $("ym-ceviri-kaydet").addEventListener("click", async function(){
     u.veri.son = {t: new Date().toISOString(), kim: benKim || "?"};
     await ghDosyaYaz("data/degisiklikler.json", b64utf8(JSON.stringify(u.veri)), "Ceviriler (" + (benKim || "?") + ")", u.sha);
     CEVIRI = yeni;
-    msg.textContent = Object.keys(yeni).length + " çeviri yayınlandı ✓";
+    msg.textContent = "✓ " + Object.keys(yeni).length + " çeviri yayında.";
+    cvCiz();
     if(DIL === "en") rerender(true);
   }catch(e2){
-    msg.textContent = "⛔ " + (e2.message || e2);
+    msg.textContent = "⛔ " + (e2.message || e2) + " — tekrar dene.";
     msg.classList.add("err");
   }
   btn.disabled = false;
 });
+$("cv-close").addEventListener("click", function(){ $("cevirimodal").close(); });
 $("ym-sanatcilar").addEventListener("click", function(){
   $("yonetimmodal").close();
   $("sn-ara").value = ""; sanatciCiz(); $("sanatcimodal").showModal();
