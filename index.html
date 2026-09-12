@@ -607,7 +607,10 @@ label[for="e-tahmini_sanatci"]{font-style:italic}
       <div class="modal-tahmini" id="m-tahmini"></div>
       <div class="modal-sub" id="m-sub"></div>
       <div class="chips" id="m-chips"></div>
-      <button class="btn-gold hide" id="m-edit" type="button" style="margin-bottom:14px">✎ Bu eseri düzenle</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="btn-gold hide" id="m-edit" type="button">✎ Bu eseri düzenle</button>
+        <button class="btn-line" id="m-link" type="button">🔗 Paylaş</button>
+      </div>
       <dl id="m-dl"></dl>
     </div>
   </div>
@@ -1436,6 +1439,7 @@ let aktifKayit = null;
 function row(dt, dd){ return dd ? "<dt>" + dt + "</dt><dd>" + dd + "</dd>" : ""; }
 function openModal(r){
   aktifKayit = r;
+  try{ history.replaceState(null, "", "#eser-" + r.no); }catch(e){}
   karFotos = karUrls(r); karI = 0; karGoster();
   $("m-no").textContent = "ARŞİV № " + r.no;
   $("m-artist").textContent = r.sanatci || r.aciklama || r.cins || ("Eser " + r.no);
@@ -1474,9 +1478,48 @@ function openModal(r){
   $("m-dl").innerHTML = h;
   $("modal").showModal();
 }
-$("m-close").addEventListener("click", function(){ $("modal").close(); });
-$("modal").addEventListener("click", function(e){ if(e.target === $("modal")) $("modal").close(); });
+function hashTemizle(){
+  if(String(location.hash).indexOf("#eser-") === 0){
+    try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){}
+  }
+}
+$("m-close").addEventListener("click", function(){ $("modal").close(); hashTemizle(); });
+$("modal").addEventListener("click", function(e){ if(e.target === $("modal")){ $("modal").close(); hashTemizle(); } });
 $("m-edit").addEventListener("click", function(){ if(aktifKayit) openEditor(aktifKayit); });
+$("modal").addEventListener("close", hashTemizle);
+$("m-link").addEventListener("click", async function(){
+  if(!aktifKayit) return;
+  const url = location.origin + location.pathname + "#eser-" + aktifKayit.no;
+  const ad = (aktifKayit.sanatci || aktifKayit.aciklama || "Eser") + " — № " + aktifKayit.no;
+  if(navigator.share){
+    try{ await navigator.share({title: "Timurlenk · " + ad, url: url}); return; }
+    catch(e){ if(e && e.name === "AbortError") return; }
+  }
+  try{ await navigator.clipboard.writeText(url); toast("Bağlantı kopyalandı — № " + aktifKayit.no); }
+  catch(e){ window.prompt("Bağlantıyı kopyala:", url); }
+});
+function hashtanAc(){
+  const m = String(location.hash || "").match(/^#eser-(\d+)$/);
+  if(!m) return;
+  const no = parseInt(m[1], 10);
+  const r = ALL.filter(function(x){ return x.no === no; })[0];
+  if(!r){ toast("№ " + no + " envanterde bulunamadı."); return; }
+  const gate = $("gate");
+  if(gate && !gate.hidden){
+    const bekci = setInterval(function(){
+      if(gate.hidden){ clearInterval(bekci); openModal(r); }
+    }, 250);
+    setTimeout(function(){ clearInterval(bekci); }, 120000);
+    return;
+  }
+  openModal(r);
+}
+window.addEventListener("hashchange", function(){
+  const m = String(location.hash || "").match(/^#eser-(\d+)$/);
+  if(!m) return;
+  if(aktifKayit && String(aktifKayit.no) === m[1] && $("modal").open) return;
+  hashtanAc();
+});
 
 /* ================= editor ================= */
 let duzenlenen = null;      // null => yeni eser
@@ -2821,13 +2864,110 @@ function duzlestir(img, pins, maxOut){
   }
   return c;
 }
-const FL = {img: null, pins: [], cb: null, olcek: 1, kaynakW: 0, kaynakH: 0, aktifPin: -1, hat: false, gor: {s: 1, ox: 0, oy: 0}};
+function koseTahmin(img){
+  // Cerceve dis kenarlarini bul: kucuk kopya + Sobel + distan ice ilk guclu kenar + RANSAC dogru.
+  try{
+    const W0 = img.naturalWidth, H0 = img.naturalHeight;
+    if(!W0 || !H0) return null;
+    const o = Math.min(1, 360 / Math.max(W0, H0));
+    const w = Math.max(48, Math.round(W0 * o)), h = Math.max(48, Math.round(H0 * o));
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const ctx = c.getContext("2d", {willReadFrequently: true});
+    ctx.drawImage(img, 0, 0, w, h);
+    const d = ctx.getImageData(0, 0, w, h).data;
+    const gri = new Float32Array(w * h);
+    for(let i = 0, p = 0; i < gri.length; i++, p += 4) gri[i] = d[p] * .299 + d[p + 1] * .587 + d[p + 2] * .114;
+    const gx = new Float32Array(w * h), gy = new Float32Array(w * h);
+    for(let y = 1; y < h - 1; y++) for(let x = 1; x < w - 1; x++){
+      const i = y * w + x;
+      gx[i] = Math.abs(gri[i + 1] - gri[i - 1]) + .5 * Math.abs(gri[i - w + 1] - gri[i - w - 1]) + .5 * Math.abs(gri[i + w + 1] - gri[i + w - 1]);
+      gy[i] = Math.abs(gri[i + w] - gri[i - w]) + .5 * Math.abs(gri[i + w + 1] - gri[i - w + 1]) + .5 * Math.abs(gri[i + w - 1] - gri[i - w - 1]);
+    }
+    function esik(a){
+      const orn = [];
+      for(let i = 0; i < a.length; i += 89) orn.push(a[i]);
+      orn.sort(function(p, q){ return p - q; });
+      return Math.max(16, orn[Math.floor(orn.length * .86)] * 1.1);
+    }
+    const eY = esik(gy), eX = esik(gx);
+    const bantY = Math.round(h * .46), bantX = Math.round(w * .46);
+    function tara(yon){
+      const pts = [];
+      if(yon === "ust" || yon === "alt"){
+        for(let x = Math.round(w * .07); x < w * .93; x += 2){
+          let y = yon === "ust" ? 1 : h - 2;
+          const adim = yon === "ust" ? 1 : -1;
+          for(let k = 0; k < bantY; k++, y += adim)
+            if(gy[y * w + x] > eY){ pts.push({a: x, b: y}); break; }
+        }
+      } else {
+        for(let y = Math.round(h * .07); y < h * .93; y += 2){
+          let x = yon === "sol" ? 1 : w - 2;
+          const adim = yon === "sol" ? 1 : -1;
+          for(let k = 0; k < bantX; k++, x += adim)
+            if(gx[y * w + x] > eX){ pts.push({a: y, b: x}); break; }
+        }
+      }
+      return pts;
+    }
+    function dogru(pts){   // b = m*a + n  (RANSAC + ic noktalarla LSQ)
+      if(pts.length < 14) return null;
+      let iyi = null, iyiSkor = 0;
+      for(let t = 0; t < 70; t++){
+        const p1 = pts[(Math.random() * pts.length) | 0], p2 = pts[(Math.random() * pts.length) | 0];
+        if(Math.abs(p2.a - p1.a) < 10) continue;
+        const m = (p2.b - p1.b) / (p2.a - p1.a);
+        if(Math.abs(m) > .42) continue;   // cerceve kenari kadraja asagi yukari paraleldir
+        const n = p1.b - m * p1.a;
+        let skor = 0;
+        for(let i = 0; i < pts.length; i++) if(Math.abs(pts[i].b - (m * pts[i].a + n)) < 3.2) skor++;
+        if(skor > iyiSkor){ iyiSkor = skor; iyi = {m: m, n: n}; }
+      }
+      if(!iyi || iyiSkor < Math.max(12, pts.length * .32)) return null;
+      let sa = 0, sb = 0, sab = 0, saa = 0, adet = 0;
+      for(let i = 0; i < pts.length; i++){
+        const p = pts[i];
+        if(Math.abs(p.b - (iyi.m * p.a + iyi.n)) < 3.2){ sa += p.a; sb += p.b; sab += p.a * p.b; saa += p.a * p.a; adet++; }
+      }
+      const pay = adet * saa - sa * sa;
+      if(Math.abs(pay) < 1e-6) return null;
+      const m2 = (adet * sab - sa * sb) / pay;
+      return {m: m2, n: (sb - m2 * sa) / adet};
+    }
+    const dU = dogru(tara("ust")), dA = dogru(tara("alt"));
+    const dS = dogru(tara("sol")), dR = dogru(tara("sag"));
+    if(!(dU && dA && dS && dR)) return null;
+    function kes(yatay, dikey){   // y = my*x + ny ; x = mx*y + nx
+      const x = (dikey.m * yatay.n + dikey.n) / (1 - dikey.m * yatay.m);
+      return {x: x, y: yatay.m * x + yatay.n};
+    }
+    const ham = [kes(dU, dS), kes(dU, dR), kes(dA, dR), kes(dA, dS)];
+    for(let i = 0; i < 4; i++){
+      const p = ham[i];
+      if(!(isFinite(p.x) && isFinite(p.y))) return null;
+      if(p.x < -w * .05 || p.x > w * 1.05 || p.y < -h * .05 || p.y > h * 1.05) return null;
+    }
+    let alan2 = 0;
+    for(let i = 0; i < 4; i++){
+      const p = ham[i], q = ham[(i + 1) % 4];
+      alan2 += p.x * q.y - q.x * p.y;
+    }
+    if(Math.abs(alan2) / 2 < w * h * .16) return null;
+    const g = 1 / o;
+    return ham.map(function(p){
+      return {x: Math.min(Math.max(p.x * g, 0), W0), y: Math.min(Math.max(p.y * g, 0), H0)};
+    });
+  }catch(e){ return null; }
+}
+const FL = {img: null, pins: [], cb: null, olcek: 1, kaynakW: 0, kaynakH: 0, aktifPin: -1, hat: false, gor: {s: 1, ox: 0, oy: 0}, oneri: false};
 function flatAc(kaynakUrl, secenek){
   const img = new Image();
   img.onload = function(){
     FL.img = img; FL.cb = secenek.cb; FL.hat = !!secenek.hat;
     FL.kaynakW = img.naturalWidth; FL.kaynakH = img.naturalHeight;
-    FL.pins = [{x: FL.kaynakW * .08, y: FL.kaynakH * .08}, {x: FL.kaynakW * .92, y: FL.kaynakH * .08},
+    const tahmin = koseTahmin(img);
+    FL.oneri = !!tahmin;
+    FL.pins = tahmin || [{x: FL.kaynakW * .08, y: FL.kaynakH * .08}, {x: FL.kaynakW * .92, y: FL.kaynakH * .08},
                {x: FL.kaynakW * .92, y: FL.kaynakH * .92}, {x: FL.kaynakW * .08, y: FL.kaynakH * .92}];
     FL.gor = {s: 1, ox: 0, oy: 0};
     $("fl-baslik").textContent = secenek.baslik || "Düzleştir";
@@ -2838,6 +2978,7 @@ function flatAc(kaynakUrl, secenek){
     if(!$("flatmodal").open) $("flatmodal").showModal();
     flCiz();
     requestAnimationFrame(flCiz);   // ilk boyamadan sonra gercek olculerle bir daha
+    if(FL.oneri){ $("fl-msg").classList.remove("err"); $("fl-msg").textContent = "Köşeler otomatik önerildi — gerekirse kancalarla ince ayar yap."; }
   };
   img.onerror = function(){ toast("Fotoğraf açılamadı."); if(FL.hat) hatBitir(true); };
   img.src = kaynakUrl;
@@ -3334,8 +3475,9 @@ try{
 }catch(e){}
 gorunumuYukle();
 rerender();
+hashtanAc();
 // Onaylanmis (herkese yayilmis) degisiklikleri arka planda yukle ve yerinde tazele
-sunucuDegisiklikleriniYukle().then(function(){ rerender(true); });
+sunucuDegisiklikleriniYukle().then(function(){ rerender(true); if(!$("modal").open) hashtanAc(); });
 cihazFotolariniTara();
 })();
 </script>
