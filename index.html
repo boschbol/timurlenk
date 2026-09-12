@@ -224,6 +224,7 @@ button.stat[data-act]:not([data-act=""]):hover{background:var(--card);box-shadow
 .badge.kol{background:var(--gold-soft);color:var(--gold)}
 .badge.pend{background:var(--warn-soft);color:var(--warn)}
 .badge.hazir{background:var(--ok-soft);color:var(--ok)}
+.badge.vit{background:transparent;border:1px solid var(--gold);color:var(--gold)}
 .badge + .badge{top:32px}
 .kol-yildiz{position:absolute;top:6px;right:6px;z-index:2;width:30px;height:30px;border-radius:50%;
   background:rgba(20,18,14,.55);color:rgba(255,255,255,.55);font-size:17px;line-height:30px;text-align:center}
@@ -608,6 +609,7 @@ label[for="e-tahmini_sanatci"]{font-style:italic}
     <button class="btn-line hide" id="btn-yonetim">⚙ Yönetim</button>
     <button class="btn-line hide" id="btn-flathat">✂ Düzleştirme</button>
     <button class="btn-line hide" id="btn-musteri">👥 Müşteriler</button>
+    <button class="btn-line hide" id="btn-vitrin">🛍 Vitrin</button>
     <button class="btn-line hide" id="btn-disa">⭳ Dışa aktar</button>
   </div>
 </div>
@@ -645,6 +647,8 @@ label[for="e-tahmini_sanatci"]{font-style:italic}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
         <button class="btn-gold hide" id="m-edit" type="button">✎ Bu eseri düzenle</button>
         <button class="btn-line" id="m-link" type="button">🔗 Paylaş</button>
+        <button class="btn-line hide" id="m-vitrin" type="button"></button>
+        <button class="btn-line hide" id="m-vitrinlink" type="button">🛍 Vitrin linki</button>
       </div>
       <dl id="m-dl"></dl>
     </div>
@@ -1346,6 +1350,7 @@ function cardBadges(r){
   if(r.durum === "Satıldı") h += '<span class="badge sold">' + L("SATILDI", "SOLD") + '</span>';
   else if(r.durum === "Satıldı (teyitsiz)") h += '<span class="badge unsure">' + L("SATILDI?", "SOLD?") + '</span>';
   if(r.koleksiyon === "Evet") h += '<span class="badge kol">' + L("KOLEKSİYON", "COLLECTION") + '</span>';
+  if(admin && r.vitrin === "Evet") h += '<span class="badge vit">🛍 VİTRİN</span>';
   if(admin && !fotoAdet(r) && CIHAZ_FOTO[String(r.no)])
     h += '<span class="badge hazir">📱 FOTO HAZIR</span>';
   return h;
@@ -1563,6 +1568,12 @@ function openModal(r){
   if(admin && r.sahiplik === "Konsinye") chips += '<span class="chip warn">KONSİNYE</span>';
   $("m-chips").innerHTML = chips;
   $("m-edit").classList.toggle("hide", !admin);
+  const vitrinli = r.vitrin === "Evet";
+  $("m-vitrin").classList.toggle("hide", !(admin && tamYetki()));
+  $("m-vitrin").textContent = vitrinli ? "🛍 Vitrinden çıkar" : "🛍 Vitrine koy";
+  $("m-vitrin").onclick = function(){ vitrinYaz(r, !vitrinli); };
+  $("m-vitrinlink").classList.toggle("hide", !vitrinli);
+  $("m-vitrinlink").onclick = function(){ vitrinLinkPaylas(r); };
   let h = "";
   h += row(L("Cins", "Type"), esc(cevir(r.cins))) + row(L("Konu / açıklama", "Subject"), esc(r.aciklama)) +
        row(L("Çerçeve ölçüsü", "Frame size"), esc(r.cerceve_olcu)) + row(L("Derinlik", "Depth"), esc(r.derinlik)) +
@@ -1593,6 +1604,45 @@ $("m-close").addEventListener("click", function(){ $("modal").close(); hashTemiz
 $("modal").addEventListener("click", function(e){ if(e.target === $("modal")){ $("modal").close(); hashTemizle(); } });
 $("m-edit").addEventListener("click", function(){ if(aktifKayit) openEditor(aktifKayit); });
 $("modal").addEventListener("close", hashTemizle);
+async function vitrinYaz(r, koy){
+  if(!ghTok()){ $("tk-msg").textContent = ""; $("tk-in").value = ""; $("tokenmodal").showModal(); return; }
+  let fiyat = "";
+  if(koy){
+    const cevap = window.prompt("Vitrin fiyatı (boş bırakılabilir — sayfada 'Fiyat için galeriye danışınız' görünür):", String(r.vitrin_fiyat || ""));
+    if(cevap === null) return;
+    fiyat = cevap.trim();
+  }
+  const b = $("m-vitrin");
+  b.disabled = true;
+  try{
+    const u = await ghJsonAl();
+    const d = u.veri.degisiklikler = u.veri.degisiklikler || {};
+    const e = d[String(r.no)] = d[String(r.no)] || {};
+    e.vitrin = koy ? "Evet" : "";
+    e.vitrin_fiyat = koy ? fiyat : "";
+    e.guncelleme = new Date().toISOString();
+    u.veri.gecmis_log = (u.veri.gecmis_log || []).concat([{t: new Date().toISOString(), kim: benKim || "?", no: r.no, tur: "vitrin",
+      ozet: koy ? ("vitrine kondu" + (fiyat ? " · " + fiyat : "")) : "vitrinden çıktı"}]);
+    u.veri.son = {t: new Date().toISOString(), kim: benKim || "?"};
+    await ghDosyaYaz("data/degisiklikler.json", b64utf8(JSON.stringify(u.veri)), "Vitrin (" + (benKim || "?") + "): " + r.no, u.sha);
+    SRV_OV[String(r.no)] = Object.assign({}, SRV_OV[String(r.no)] || {}, {vitrin: e.vitrin, vitrin_fiyat: e.vitrin_fiyat});
+    rerender(true);
+    const g = ALL.filter(function(x){ return x.no === r.no; })[0];
+    if(g) openModal(g);
+    toast(koy ? "№ " + r.no + " vitrine kondu 🛍 — linki 🛍 düğmesinden paylaş." : "№ " + r.no + " vitrinden çıkarıldı.");
+  }catch(err){ toast("⛔ Vitrin güncellenemedi: " + (err.message || err)); }
+  b.disabled = false;
+}
+async function vitrinLinkPaylas(r){
+  const url = location.origin + location.pathname.replace(/index\.html$/, "").replace(/\/$/, "") + "/vitrin.html#eser-" + r.no;
+  const ad = (r.sanatci || r.aciklama || "Eser") + " — № " + r.no;
+  if(navigator.share){
+    try{ await navigator.share({title: "Timurlenk · " + ad, url: url}); return; }
+    catch(e){ if(e && e.name === "AbortError") return; }
+  }
+  try{ await navigator.clipboard.writeText(url); toast("Vitrin bağlantısı kopyalandı — şifresiz açılır."); }
+  catch(e){ window.prompt("Vitrin bağlantısı:", url); }
+}
 $("m-link").addEventListener("click", async function(){
   if(!aktifKayit) return;
   const url = location.origin + location.pathname + "#eser-" + aktifKayit.no;
@@ -3075,6 +3125,7 @@ function musteriListele(){
     (parcalar.length ? parcalar.join("") : '<div class="mu-alt">Listede eşleşen müşteri yok.</div>') +
     (grHtml.length ? '<div class="mu-baslik2">Envanter kayıtlarındaki alıcılar</div>' + grHtml.join("") : "");
 }
+$("btn-vitrin").addEventListener("click", function(){ window.open("vitrin.html", "_blank"); });
 $("btn-musteri").addEventListener("click", function(){
   $("mu-ara").value = "";
   $("mu-yeni").classList.toggle("hide", !(admin && tamYetki()));
@@ -3760,6 +3811,7 @@ function panelUygula(){
   $("btn-add").classList.toggle("hide", !admin);
   $("btn-disa").classList.toggle("hide", !admin);
   $("btn-musteri").classList.toggle("hide", !admin);
+  $("btn-vitrin").classList.toggle("hide", !admin);
   $("btn-gecmis").classList.toggle("hide", !admin);
   $("btn-yonetim").classList.toggle("hide", !(admin && tamYetki()));
   $("btn-flathat").classList.toggle("hide", !(admin && tamYetki()));
