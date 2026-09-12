@@ -350,6 +350,24 @@ label[for="e-tahmini_sanatci"]{font-style:italic}
 .gc-kisiler{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .gc-kisi{border:1px solid var(--line-2);border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--ink-2);background:transparent}
 .gc-kisi[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+/* ---- istatistik ---- */
+#statmodal{width:min(680px,calc(100vw - 24px))}
+.st-govde{margin-top:10px;max-height:66vh;overflow:auto;display:flex;flex-direction:column;gap:14px;padding-right:4px}
+.st-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.st-hero .kutu{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px 12px;text-align:center}
+.st-hero b{display:block;font-size:20px;color:var(--gold);font-variant-numeric:tabular-nums}
+.st-hero span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.st-bolum{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px 12px}
+.st-baslik{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);margin-bottom:8px}
+.st-satir{display:flex;align-items:center;gap:8px;padding:2.5px 0;border:0;background:none;width:100%;text-align:left;color:var(--ink);font-size:13px}
+.st-satir[data-stact]{cursor:pointer;border-radius:7px}
+.st-satir[data-stact]:hover{background:var(--bg)}
+.st-ad{flex:0 0 34%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-cubuk{flex:1;height:9px;background:var(--bg);border-radius:5px;overflow:hidden}
+.st-cubuk i{display:block;height:100%;background:var(--gold);border-radius:5px;min-width:2px}
+.st-cubuk.soluk i{background:var(--line-2)}
+.st-say{flex:0 0 auto;font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:12.5px;min-width:34px;text-align:right}
+.st-not{font-size:12px;color:var(--ink-2);margin-top:6px;line-height:1.5}
 /* ---- musteriler ---- */
 #musterimodal{width:min(620px,calc(100vw - 24px))}
 .mu-liste{margin-top:10px;display:flex;flex-direction:column;gap:10px;max-height:62vh;overflow:auto}
@@ -532,6 +550,7 @@ label[for="e-tahmini_sanatci"]{font-style:italic}
     <button class="tgl" id="f-fotosuz" aria-pressed="false">Fotoğrafsız</button>
     <button class="tgl hide" id="f-eksik" aria-pressed="false">Sanatçısı belirsiz</button>
     <button class="btn-sanatci-dugme" id="btn-sanatci">🎨 Sanatçılar</button>
+    <button class="btn-sanatci-dugme" id="btn-stat">📊 İstatistik</button>
     <button class="btn-gold hide" id="btn-add">＋ Yeni eser</button>
     <button class="btn-gold hide" id="btn-onay">☁ Onayla</button>
     <button class="btn-line hide" id="btn-gecmis">🕘 Geçmiş</button>
@@ -683,6 +702,16 @@ label[for="e-tahmini_sanatci"]{font-style:italic}
     </div>
     <div class="gc-kisiler" id="gc-kisiler"></div>
     <div class="gecmis-liste" id="gecmis-liste"></div>
+  </div>
+</dialog>
+
+<dialog id="statmodal">
+  <div class="form-wrap">
+    <div class="modal-top">
+      <h2 style="margin-bottom:0">İstatistik</h2>
+      <button type="button" class="modal-close" id="st-close" aria-label="Kapat">✕</button>
+    </div>
+    <div class="st-govde" id="st-govde"></div>
   </div>
 </dialog>
 
@@ -2296,7 +2325,7 @@ $("om-close").addEventListener("click", function(){ $("onaymodal").close(); });
 $("om-vazgec").addEventListener("click", function(){ $("onaymodal").close(); });
 $("btn-onay").addEventListener("click", onayOnizlemeAc);
 // goruntuleme pencereleri: karartilmis bosluga dokununca kapanir (form pencereleri haric)
-["modal", "sanatcimodal", "gecmismodal", "musterimodal"].forEach(function(id){
+["modal", "sanatcimodal", "gecmismodal", "musterimodal", "statmodal"].forEach(function(id){
   $(id).addEventListener("click", function(e){ if(e.target === $(id)) $(id).close(); });
 });
 let gcFiltre = "";
@@ -2468,6 +2497,116 @@ $("ym-sanatcilar").addEventListener("click", function(){
   $("sn-ara").value = ""; sanatciCiz(); $("sanatcimodal").showModal();
 });
 $("gm-close").addEventListener("click", function(){ $("gecmismodal").close(); });
+/* ---- istatistik ekrani ---- */
+function stSay(map, k){ if(k) map[k] = (map[k] || 0) + 1; }
+function stCubuklar(baslik, cifts, secenek){
+  secenek = secenek || {};
+  if(!cifts.length) return "";
+  const maks = cifts[0][1];
+  const satirlar = cifts.map(function(c){
+    const g = Math.max(2, Math.round(c[1] / maks * 100));
+    const act = secenek.act ? ' data-stact="' + secenek.act + '" data-deger="' + esc(String(c[0])) + '"' : "";
+    const Tag = secenek.act ? "button" : "div";
+    return "<" + Tag + ' type="button" class="st-satir"' + act + '><span class="st-ad">' + esc(String(c[0])) +
+           '</span><div class="st-cubuk' + (secenek.soluk ? " soluk" : "") + '"><i style="width:' + g + '%"></i></div>' +
+           '<span class="st-say">' + c[1].toLocaleString("tr") + "</span></" + Tag + ">";
+  }).join("");
+  return '<div class="st-bolum"><div class="st-baslik">' + baslik + "</div>" + satirlar +
+         (secenek.not ? '<div class="st-not">' + secenek.not + "</div>" : "") + "</div>";
+}
+function stSirala(map, adet){
+  return Object.keys(map).map(function(k){ return [k, map[k]]; })
+    .sort(function(a, b){ return b[1] - a[1]; }).slice(0, adet || 12);
+}
+function fiyatCoz(t){
+  t = String(t || "");
+  if(!t || /usd|dolar|\$|eur|€|gbp|£/i.test(t)) return null;
+  const m = t.replace(/\./g, "").replace(/,/g, "").match(/\d{2,9}/);
+  if(!m) return null;
+  const v = parseInt(m[0], 10);
+  return (v >= 50 && v <= 5000000) ? v : null;
+}
+function istatistikAc(){
+  const durum = {}, cins = {}, sanatci = {}, aile = {}, kanal = {}, onyil = {};
+  let toplamKare = 0, fotolu = 0, imzasiz = 0, kolN = 0, konsinye = 0, mevcut = 0, satilan = 0;
+  const fotoDagilim = {"Fotoğrafsız": 0, "1 kare": 0, "2-3 kare": 0, "4-5 kare": 0, "6+ kare": 0};
+  let satisToplam = 0, satisAdet = 0;
+  const sanatciSayisi = {};
+  ALL.forEach(function(r){
+    stSay(durum, r.durum || "(boş)");
+    stSay(cins, r.cins || "(boş)");
+    stSay(sanatci, r.sanatci);
+    if(r.sanatci) sanatciSayisi[r.sanatci] = 1;
+    stSay(aile, r._aile);
+    stSay(kanal, r.satis_kanali);
+    if(r.durum === "Mevcut") mevcut++;
+    if((r.durum || "").indexOf("Satıldı") === 0) satilan++;
+    if(norm(r.sanatci).indexOf("imza okunam") === 0) imzasiz++;
+    if(r.koleksiyon === "Evet") kolN++;
+    if(r.sahiplik === "Konsinye") konsinye++;
+    const fa = fotoAdet(r);
+    toplamKare += fa;
+    if(fa) fotolu++;
+    fotoDagilim[fa === 0 ? "Fotoğrafsız" : fa === 1 ? "1 kare" : fa <= 3 ? "2-3 kare" : fa <= 5 ? "4-5 kare" : "6+ kare"]++;
+    const yil = String(r.tarih || "").match(/(19|20)\d\d/);
+    if(yil) stSay(onyil, yil[0].slice(0, 3) + "0'lar");
+    const f = fiyatCoz(r.fiyat_metin);
+    if(f !== null && (r.durum || "").indexOf("Satıldı") === 0){ satisToplam += f; satisAdet++; }
+  });
+  let h = '<div class="st-hero">' +
+    '<div class="kutu"><b>' + ALL.length.toLocaleString("tr") + "</b><span>Eser</span></div>" +
+    '<div class="kutu"><b>' + Object.keys(sanatciSayisi).length.toLocaleString("tr") + "</b><span>Sanatçı</span></div>" +
+    '<div class="kutu"><b>' + toplamKare.toLocaleString("tr") + "</b><span>Fotoğraf karesi</span></div>" +
+    '<div class="kutu"><b>' + mevcut.toLocaleString("tr") + "</b><span>Mevcut</span></div>" +
+    '<div class="kutu"><b>' + satilan.toLocaleString("tr") + "</b><span>Satılan</span></div>" +
+    "</div>";
+  h += stCubuklar("Durum", stSirala(durum, 8), {act: "durum"});
+  h += stCubuklar("En çok eseri olan sanatçılar", stSirala(sanatci, 12),
+                  {act: "sanatci", not: "Satıra dokun → galeri o sanatçıya filtrelenir. İmzası okunamayan: " + imzasiz.toLocaleString("tr") + " eser."});
+  h += stCubuklar("Cins", stSirala(cins, 8));
+  h += stCubuklar("Teknik aileleri", stSirala(aile, 8), {act: "teknik"});
+  h += stCubuklar("Fotoğraf durumu", Object.keys(fotoDagilim).map(function(k){ return [k, fotoDagilim[k]]; }).filter(function(c){ return c[1]; }).sort(function(a,b){ return b[1]-a[1]; }),
+                  {soluk: true, not: "Ortalama " + (toplamKare / Math.max(1, fotolu)).toFixed(1).replace(".", ",") + " kare / fotoğraflı eser."});
+  const onyilCift = Object.keys(onyil).sort().map(function(k){ return [k, onyil[k]]; });
+  if(onyilCift.reduce(function(a, c){ return a + c[1]; }, 0) >= 40){
+    const m2 = Math.max.apply(null, onyilCift.map(function(c){ return c[1]; }));
+    h += '<div class="st-bolum"><div class="st-baslik">Dönem (eser tarihinden)</div>' + onyilCift.map(function(c){
+      return '<div class="st-satir"><span class="st-ad">' + esc(c[0]) + '</span><div class="st-cubuk soluk"><i style="width:' + Math.max(2, Math.round(c[1] / m2 * 100)) + '%"></i></div><span class="st-say">' + c[1] + "</span></div>";
+    }).join("") + '<div class="st-not">Yalnız tarihi yazılı eserler sayılır.</div></div>';
+  }
+  if(admin){
+    h += stCubuklar("Satış kanalları (panel)", stSirala(kanal, 10));
+    if(satisAdet){
+      h += '<div class="st-bolum"><div class="st-baslik">Satış tutarı (panel, yaklaşık)</div>' +
+        '<div class="st-not">Bedeli sayı olarak çözülebilen <b>' + satisAdet + '</b> satışın toplamı: <b>₺' + satisToplam.toLocaleString("tr") + "</b> · ortalama ₺" + Math.round(satisToplam / satisAdet).toLocaleString("tr") +
+        ". Bedeller serbest metinden okunur; döviz yazılanlar ve boşlar dahil değildir.</div></div>";
+    }
+    h += stCubuklar("Koleksiyon / Konsinye (panel)", [["Koleksiyon eseri", kolN], ["Konsinye", konsinye]].filter(function(c){ return c[1]; }), {soluk: true});
+  }
+  $("st-govde").innerHTML = h;
+  $("statmodal").showModal();
+}
+$("btn-stat").addEventListener("click", istatistikAc);
+$("st-close").addEventListener("click", function(){ $("statmodal").close(); });
+$("st-govde").addEventListener("click", function(e){
+  const b = e.target.closest("[data-stact]");
+  if(!b) return;
+  const tur = b.getAttribute("data-stact"), deger = b.getAttribute("data-deger");
+  if(tur === "sanatci"){
+    state.sanatci = (deger === "(boş)") ? "" : deger;
+    state.ekstra = null;
+  } else if(tur === "durum"){
+    if(deger === "(boş)") return;
+    state.durum = deger; $("f-durum").value = deger;
+    state.ekstra = null;
+  } else if(tur === "teknik"){
+    state.teknik = deger; $("f-teknik").value = deger;
+  }
+  $("statmodal").close();
+  window.scrollTo(0, 0);
+  apply();
+});
+
 /* ---- musteriler (yalniz panel; telefon/adres sitede tutulmaz) ---- */
 function musteriListele(){
   const q = ($("mu-ara").value || "").toLocaleLowerCase("tr").trim();
