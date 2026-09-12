@@ -201,11 +201,15 @@ button.stat[data-act]:not([data-act=""]):hover{background:var(--card);box-shadow
 
 .grid{max-width:1280px;margin:0 auto;padding:14px 20px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:14px}
 @media(max-width:420px){.grid{grid-template-columns:repeat(2,1fr);gap:10px;padding:12px 12px 60px}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);text-align:left;display:flex;flex-direction:column;transition:translate .12s ease, box-shadow .12s ease}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:visible;position:relative;box-shadow:var(--shadow);text-align:left;display:flex;flex-direction:column;transition:translate .12s ease, box-shadow .12s ease}
+.yeni-pul{position:absolute;top:-8px;left:-8px;z-index:3;width:37px;height:37px;border-radius:50%;
+  background:var(--gold);color:#241f16;font-size:9px;font-weight:800;letter-spacing:.09em;
+  display:flex;align-items:center;justify-content:center;transform:rotate(-14deg);
+  box-shadow:0 2px 8px rgba(0,0,0,.45);pointer-events:none}
 .card:hover{translate:0 -2px;box-shadow:var(--shadow-lg)}
 .card:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .thumb{aspect-ratio:1/1;background:repeating-conic-gradient(var(--line) 0% 25%, var(--bg) 0% 50%) 0 0/22px 22px;
-  display:flex;align-items:center;justify-content:center;position:relative}
+  display:flex;align-items:center;justify-content:center;position:relative;border-radius:12px 12px 0 0;overflow:hidden}
 .thumb img{width:100%;height:100%;object-fit:contain;display:block}
 .nophoto{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);text-align:center;padding:8px}
 .card-meta{padding:9px 11px 11px;display:flex;flex-direction:column;gap:3px}
@@ -350,6 +354,17 @@ label[for="e-tahmini_sanatci"]{font-style:italic}
 .gc-kisiler{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .gc-kisi{border:1px solid var(--line-2);border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--ink-2);background:transparent}
 .gc-kisi[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+/* ---- kareler duvari ---- */
+#karemodal{width:min(880px,calc(100vw - 20px))}
+.km-sec{display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap}
+.km-sec button{border:1px solid var(--line-2);border-radius:9px;padding:5px 12px;font-size:12.5px;color:var(--ink-2)}
+.km-sec button[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+.km-not{font-size:12px;color:var(--ink-2)}
+.km-grid{margin-top:10px;max-height:64vh;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:7px}
+.km-hucre{position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden;border:1px solid var(--line);background:var(--bg);cursor:pointer;padding:0}
+.km-hucre img{width:100%;height:100%;object-fit:cover;display:block}
+.km-hucre:hover{border-color:var(--gold)}
+.km-no{position:absolute;bottom:2px;left:3px;font-size:9.5px;font-weight:600;color:#fff;background:rgba(20,18,14,.72);border-radius:4px;padding:0 4px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 /* ---- istatistik ---- */
 #statmodal{width:min(680px,calc(100vw - 24px))}
 .st-govde{margin-top:10px;max-height:66vh;overflow:auto;display:flex;flex-direction:column;gap:14px;padding-right:4px}
@@ -551,6 +566,7 @@ label[for="e-tahmini_sanatci"]{font-style:italic}
     <button class="tgl hide" id="f-eksik" aria-pressed="false">Sanatçısı belirsiz</button>
     <button class="btn-sanatci-dugme" id="btn-sanatci">🎨 Sanatçılar</button>
     <button class="btn-sanatci-dugme" id="btn-stat">📊 İstatistik</button>
+    <button class="btn-sanatci-dugme" id="btn-kare">🖋 Kareler</button>
     <button class="btn-gold hide" id="btn-add">＋ Yeni eser</button>
     <button class="btn-gold hide" id="btn-onay">☁ Onayla</button>
     <button class="btn-line hide" id="btn-gecmis">🕘 Geçmiş</button>
@@ -702,6 +718,21 @@ label[for="e-tahmini_sanatci"]{font-style:italic}
     </div>
     <div class="gc-kisiler" id="gc-kisiler"></div>
     <div class="gecmis-liste" id="gecmis-liste"></div>
+  </div>
+</dialog>
+
+<dialog id="karemodal">
+  <div class="form-wrap">
+    <div class="modal-top">
+      <h2 style="margin-bottom:0">Kareler</h2>
+      <button type="button" class="modal-close" id="km-close" aria-label="Kapat">✕</button>
+    </div>
+    <div class="km-sec">
+      <button type="button" id="km-son" aria-pressed="true">🖋 Son kareler</button>
+      <button type="button" id="km-tum" aria-pressed="false">Tüm kareler</button>
+      <span class="km-not" id="km-not"></span>
+    </div>
+    <div class="km-grid" id="km-grid"></div>
   </div>
 </dialog>
 
@@ -1206,10 +1237,27 @@ function cardBadges(r){
   if(r.durum === "Satıldı") h += '<span class="badge sold">SATILDI</span>';
   else if(r.durum === "Satıldı (teyitsiz)") h += '<span class="badge unsure">SATILDI?</span>';
   if(r.koleksiyon === "Evet") h += '<span class="badge kol">KOLEKSİYON</span>';
-  if(r._yeni) h += '<span class="badge pend">YENİ</span>';
   if(admin && !fotoAdet(r) && CIHAZ_FOTO[String(r.no)])
     h += '<span class="badge hazir">📱 FOTO HAZIR</span>';
   return h;
+}
+const TR_AYLAR = ["ocak","şubat","mart","nisan","mayıs","haziran","temmuz","ağustos","eylül","ekim","kasım","aralık"];
+function alimTarihi(r){
+  const t = String(r.alim_tarihi || "").trim();
+  if(!t) return null;
+  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);                 // 2026-09-12
+  if(m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = t.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);          // 12.09.2026
+  if(m) return new Date(+m[3], +m[2] - 1, +m[1]);
+  m = t.toLocaleLowerCase("tr").match(/^(\d{1,2})\s+([a-zçğıöşü]+)\s+(\d{4})/);  // 12 eylül 2026
+  if(m){ const ai = TR_AYLAR.indexOf(m[2]); if(ai >= 0) return new Date(+m[3], ai, +m[1]); }
+  return null;
+}
+function yeniMi(r){
+  const d = alimTarihi(r);
+  if(!d || isNaN(d.getTime())) return false;
+  const fark = Date.now() - d.getTime();
+  return fark >= -86400000 && fark <= 30 * 86400000;   // alindigi tarih son 30 gunde
 }
 function kartBaslik(r){
   return esc(r.sanatci) || esc(r.aciklama) || esc(r.cins) || '<i style="color:var(--ink-3)">Sanatçı boş</i>';
@@ -1233,7 +1281,8 @@ function renderMore(){
       ? '<button type="button" class="kol-yildiz' + (r.koleksiyon === "Evet" ? " on" : "") +
         '" data-no="' + r.no + '" title="Koleksiyon işaretle/kaldır">★</button>'
       : "";
-    b.innerHTML = '<div class="thumb">' + yildizHtml + cardBadges(r) +
+    b.innerHTML = (yeniMi(r) ? '<span class="yeni-pul">YENİ</span>' : "") +
+      '<div class="thumb">' + yildizHtml + cardBadges(r) +
       (img ? '<img loading="lazy" decoding="async" alt="">' : '<div class="nophoto">Fotoğraf yok</div>') +
       (adet > 1 ? '<span class="fotoadet">' + adet + ' foto</span>' : "") + "</div>" +
       '<div class="card-meta"><span class="no">№ ' + r.no + "</span>" +
@@ -2088,7 +2137,10 @@ async function sunucuDegisiklikleriniYukle(){
     SRV_OV = v.degisiklikler || {};
     SRV_NEW = (v.yeni_eserler || []).map(function(n){ return Object.assign({}, n); });
     const sf = v.fotolar || {};
-    for(const no in sf) FOTO[no] = sf[no];
+    for(const no in sf){
+      const eski = FOTO[no];   // arsivden uretilen kare sayisi telefondaki sayacla EZILMEZ, buyuk olan kazanir
+      FOTO[no] = eski ? [Math.max(eski[0], sf[no][0]), Math.max(eski[1] || 0, sf[no][1] || 0)] : sf[no];
+    }
     SRV_LOG = v.gecmis_log || [];
     SRV_SON = v.son || null;
     if(v.ayarlar && v.ayarlar.alanlar) AYAR.alanlar = v.ayarlar.alanlar;
@@ -2325,7 +2377,7 @@ $("om-close").addEventListener("click", function(){ $("onaymodal").close(); });
 $("om-vazgec").addEventListener("click", function(){ $("onaymodal").close(); });
 $("btn-onay").addEventListener("click", onayOnizlemeAc);
 // goruntuleme pencereleri: karartilmis bosluga dokununca kapanir (form pencereleri haric)
-["modal", "sanatcimodal", "gecmismodal", "musterimodal", "statmodal"].forEach(function(id){
+["modal", "sanatcimodal", "gecmismodal", "musterimodal", "statmodal", "karemodal"].forEach(function(id){
   $(id).addEventListener("click", function(e){ if(e.target === $(id)) $(id).close(); });
 });
 let gcFiltre = "";
@@ -2497,6 +2549,55 @@ $("ym-sanatcilar").addEventListener("click", function(){
   $("sn-ara").value = ""; sanatciCiz(); $("sanatcimodal").showModal();
 });
 $("gm-close").addEventListener("click", function(){ $("gecmismodal").close(); });
+/* ---- kareler duvari: gorunumdeki eserlerin kareleri (imza karsilastirma) ---- */
+let kmMod = "son";
+function kareDuvariCiz(){
+  const SINIR = 800;
+  const parcalar = [];
+  let toplam = 0;
+  for(let vi = 0; vi < view.length && toplam < SINIR; vi++){
+    const r = view[vi];
+    const f = FOTO[r.no];
+    const adet = f ? f[0] : 0;
+    if(!adet) continue;
+    if(kmMod === "son"){
+      parcalar.push('<button type="button" class="km-hucre" data-no="' + r.no + '" data-i="' + adet + '">' +
+        '<img loading="lazy" decoding="async" src="f/' + r.no + "-" + adet + '.jpg" alt=""><span class="km-no">№ ' + r.no + "</span></button>");
+      toplam++;
+    } else {
+      for(let i = 1; i <= adet && toplam < SINIR; i++){
+        parcalar.push('<button type="button" class="km-hucre" data-no="' + r.no + '" data-i="' + i + '">' +
+          '<img loading="lazy" decoding="async" src="f/' + r.no + "-" + i + '.jpg" alt=""><span class="km-no">№ ' + r.no + (i > 1 ? "·" + i : "") + "</span></button>");
+        toplam++;
+      }
+    }
+  }
+  $("km-grid").innerHTML = parcalar.join("") || '<div class="km-not">Görünümde fotoğraflı eser yok.</div>';
+  $("km-not").textContent = (kmMod === "son"
+    ? "İmza ve arka yüz çekimleri genellikle son karededir. "
+    : "") + toplam + " kare" + (toplam >= SINIR ? " (ilk " + SINIR + " gösteriliyor — filtre daralt)" : "") +
+    " · filtre uygulanmışsa yalnız görünümdeki eserler.";
+}
+$("btn-kare").addEventListener("click", function(){
+  kmMod = "son";
+  $("km-son").setAttribute("aria-pressed", true); $("km-tum").setAttribute("aria-pressed", false);
+  kareDuvariCiz();
+  $("karemodal").showModal();
+});
+$("km-son").addEventListener("click", function(){ kmMod = "son"; this.setAttribute("aria-pressed", true); $("km-tum").setAttribute("aria-pressed", false); kareDuvariCiz(); });
+$("km-tum").addEventListener("click", function(){ kmMod = "tum"; this.setAttribute("aria-pressed", true); $("km-son").setAttribute("aria-pressed", false); kareDuvariCiz(); });
+$("km-close").addEventListener("click", function(){ $("karemodal").close(); });
+$("km-grid").addEventListener("click", function(e){
+  const h = e.target.closest(".km-hucre");
+  if(!h) return;
+  const no = parseInt(h.getAttribute("data-no"), 10), i = parseInt(h.getAttribute("data-i"), 10);
+  const r = ALL.filter(function(x){ return x.no === no; })[0];
+  if(!r) return;
+  openModal(r);
+  const hedef = karFotos.indexOf("f/" + no + "-" + i + ".jpg");
+  if(hedef >= 0){ karI = hedef; karGoster(); }
+});
+
 /* ---- istatistik ekrani ---- */
 function stSay(map, k){ if(k) map[k] = (map[k] || 0) + 1; }
 function stCubuklar(baslik, cifts, secenek){
